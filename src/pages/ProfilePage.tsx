@@ -1,21 +1,7 @@
 
-import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
-import { 
-  User, 
-  Edit, 
-  Mail, 
-  Save, 
-  X, 
-  Upload, 
-  Trash2, 
-  Clock, 
-  BookOpen,
-  PenLine,
-  Lock,
-  Globe
-} from "lucide-react";
-
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { User, FileDown, FileUp, Save, UserCog, Shield, Database, Clock, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,71 +10,94 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-
-import { getUser, updateUser, getDecks, Deck, deleteDeck, getBase64, updateDeck } from "@/lib/localStorage";
-import DeckCard, { DeckCardProps } from "@/components/DeckCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { 
+  getUser, 
+  updateUser, 
+  getDecks, 
+  getBase64,
+  Deck 
+} from "@/lib/localStorage";
+import { 
+  getSessionKey, 
+  getSessionStats, 
+  hasSession, 
+  saveSessionKey, 
+  generateSessionKey,
+  exportSessionData,
+  importSessionData
+} from "@/lib/sessionManager";
 
 const ProfilePage = () => {
   const { toast } = useToast();
-  const [user, setUser] = useState(getUser());
-  const [editMode, setEditMode] = useState(false);
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [bio, setBio] = useState(user?.bio || "");
-  const [avatar, setAvatar] = useState<string | undefined>(user?.avatar);
-  const [decks, setDecks] = useState<DeckCardProps[]>([]);
-  const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
-  const [editingDeck, setEditingDeck] = useState<Partial<Deck> | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const navigate = useNavigate();
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userBio, setUserBio] = useState("");
+  const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
+  const [sessionKey, setSessionKey] = useState<string | null>(null);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [exportedData, setExportedData] = useState<string>("");
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importData, setImportData] = useState("");
 
-  // Load user decks
   useEffect(() => {
-    if (user) {
-      const userDecks = getDecks().filter(deck => deck.authorId === user.id);
-      const deckData = userDecks.map(deck => ({
-        id: deck.id,
-        title: deck.title,
-        description: deck.description,
-        coverImage: deck.coverImage,
-        cardCount: 0, // Will be filled later
-        tags: deck.tags,
-        author: user.name,
-        isPublic: deck.isPublic,
-      }));
-      setDecks(deckData);
+    // Vérifier si l'utilisateur est connecté
+    if (!hasSession()) {
+      navigate("/login");
+      return;
     }
-  }, [user]);
+
+    // Charger les données utilisateur
+    const user = getUser();
+    if (user) {
+      setUserName(user.name || "");
+      setUserEmail(user.email || "");
+      setUserBio(user.bio || "");
+      setUserAvatar(user.avatar);
+    }
+
+    // Charger la clé de session
+    const key = getSessionKey();
+    setSessionKey(key);
+
+    // Charger les decks
+    const userDecks = getDecks();
+    setDecks(userDecks);
+
+    // Charger les statistiques
+    const userStats = getSessionStats();
+    setStats(userStats);
+  }, [navigate]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      if (file.size > 2 * 1024 * 1024) {
+      if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "Fichier trop volumineux",
-          description: "L'avatar ne doit pas dépasser 2 Mo",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!file.type.startsWith("image/")) {
-        toast({
-          title: "Format non supporté",
-          description: "Veuillez sélectionner une image",
+          description: "L'image ne doit pas dépasser 5 Mo",
           variant: "destructive",
         });
         return;
       }
 
       const base64 = await getBase64(file);
-      setAvatar(base64);
+      setUserAvatar(base64);
     } catch (error) {
-      console.error("Error processing avatar:", error);
+      console.error("Error processing image:", error);
       toast({
         title: "Erreur",
         description: "Impossible de traiter l'image",
@@ -97,8 +106,8 @@ const ProfilePage = () => {
     }
   };
 
-  const handleProfileSave = () => {
-    if (!name.trim()) {
+  const handleProfileUpdate = () => {
+    if (!userName.trim()) {
       toast({
         title: "Nom requis",
         description: "Veuillez saisir un nom",
@@ -109,15 +118,13 @@ const ProfilePage = () => {
 
     try {
       const updatedUser = updateUser({
-        name: name.trim(),
-        email: email.trim(),
-        bio: bio.trim(),
-        avatar,
+        name: userName.trim(),
+        email: userEmail.trim(),
+        bio: userBio.trim(),
+        avatar: userAvatar,
       });
 
       if (updatedUser) {
-        setUser(updatedUser);
-        setEditMode(false);
         toast({
           title: "Profil mis à jour",
           description: "Vos informations ont été mises à jour avec succès",
@@ -133,387 +140,325 @@ const ProfilePage = () => {
     }
   };
 
-  const handleDeleteDeck = () => {
-    if (!selectedDeck) return;
+  const generateNewSessionKey = () => {
+    const newKey = generateSessionKey();
+    saveSessionKey(newKey);
+    setSessionKey(newKey);
     
+    toast({
+      title: "Nouvelle clé générée",
+      description: "Une nouvelle clé de session a été créée avec succès",
+    });
+  };
+
+  const handleExportData = () => {
     try {
-      const success = deleteDeck(selectedDeck.id);
+      const data = exportSessionData();
+      setExportedData(data);
+      setShowExportDialog(true);
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'exporter les données",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadExport = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(exportedData);
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "flashcard_data_export.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    } catch (error) {
+      console.error("Error downloading data:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger les données",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImportData = () => {
+    try {
+      if (!importData.trim()) {
+        toast({
+          title: "Données requises",
+          description: "Veuillez entrer les données JSON à importer",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const success = importSessionData(importData);
       if (success) {
-        setDecks(decks.filter(deck => deck.id !== selectedDeck.id));
-        setDeleteDialogOpen(false);
-        setSelectedDeck(null);
         toast({
-          title: "Deck supprimé",
-          description: "Le deck a été supprimé avec succès",
+          title: "Importation réussie",
+          description: "Les données ont été importées avec succès. L'application va se recharger.",
         });
-      }
-    } catch (error) {
-      console.error("Error deleting deck:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le deck",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdateDeck = () => {
-    if (!editingDeck || !editingDeck.id) return;
-    
-    try {
-      const updatedDeck = updateDeck(editingDeck.id, {
-        title: editingDeck.title,
-        description: editingDeck.description,
-        isPublic: editingDeck.isPublic,
-      });
-      
-      if (updatedDeck) {
-        // Update decks list
-        setDecks(decks.map(deck => 
-          deck.id === updatedDeck.id 
-            ? {
-                ...deck,
-                title: updatedDeck.title,
-                description: updatedDeck.description,
-                isPublic: updatedDeck.isPublic,
-              } 
-            : deck
-        ));
         
-        setEditingDeck(null);
+        // Recharger la page après quelques secondes pour actualiser les données
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
         toast({
-          title: "Deck mis à jour",
-          description: "Les informations du deck ont été mises à jour avec succès",
+          title: "Erreur",
+          description: "Format de données invalide ou incompatible",
+          variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error updating deck:", error);
+      console.error("Error importing data:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de mettre à jour le deck",
+        description: "Impossible d'importer les données",
         variant: "destructive",
       });
     }
   };
-
-  const cancelEdit = () => {
-    setEditMode(false);
-    setName(user?.name || "");
-    setEmail(user?.email || "");
-    setBio(user?.bio || "");
-    setAvatar(user?.avatar);
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map(part => part[0])
-      .join("")
-      .toUpperCase();
-  };
-
-  if (!user) return <div>Chargement...</div>;
 
   return (
     <div className="container px-4 py-8">
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="mb-8">
-          <TabsTrigger value="profile">Profil</TabsTrigger>
-          <TabsTrigger value="decks">Mes Decks</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile">
-          <Card className="max-w-3xl mx-auto">
-            <CardHeader className="relative pb-0">
-              {!editMode && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-4"
-                  onClick={() => setEditMode(true)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              )}
-              <div className="flex flex-col items-center">
-                {editMode ? (
-                  <div className="relative mb-4">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={avatar} />
-                      <AvatarFallback className="text-xl">
-                        {getInitials(name || user.name)}
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sidebar - Informations utilisateur */}
+          <div className="md:w-1/3">
+            <Card className="bg-card/60 backdrop-blur-sm">
+              <CardHeader className="flex flex-col items-center">
+                <div className="relative">
+                  <Avatar className="w-24 h-24 border-2 border-primary mb-2">
+                    {userAvatar ? (
+                      <AvatarImage src={userAvatar} alt={userName} />
+                    ) : (
+                      <AvatarFallback className="text-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                        {userName.substring(0, 2).toUpperCase() || "U"}
                       </AvatarFallback>
-                    </Avatar>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute bottom-0 right-0 rounded-full h-8 w-8"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      ref={fileInputRef}
-                      onChange={handleAvatarChange}
-                    />
-                  </div>
-                ) : (
-                  <Avatar className="h-24 w-24 mb-4">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback className="text-xl">
-                      {getInitials(user.name)}
-                    </AvatarFallback>
+                    )}
                   </Avatar>
+                  <label 
+                    htmlFor="avatar-upload" 
+                    className="absolute bottom-0 right-0 p-1 rounded-full bg-primary text-white cursor-pointer hover:bg-primary/80 transition-colors"
+                  >
+                    <UserCog className="h-4 w-4" />
+                    <input 
+                      id="avatar-upload" 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleAvatarChange} 
+                    />
+                  </label>
+                </div>
+                <CardTitle className="mt-2 text-xl">{userName}</CardTitle>
+                <CardDescription className="text-center">{userEmail}</CardDescription>
+                {userBio && (
+                  <p className="text-sm text-muted-foreground mt-2 text-center">{userBio}</p>
                 )}
-
-                {editMode ? (
-                  <div className="w-full space-y-4">
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <Database className="h-4 w-4 text-primary" />
+                    <span>Decks créés</span>
+                  </h3>
+                  <p className="text-2xl font-bold">{decks.length}</p>
+                </div>
+                
+                {stats && (
+                  <>
                     <div>
-                      <Label htmlFor="name">Nom</Label>
+                      <h3 className="text-sm font-medium flex items-center gap-2">
+                        <BarChart className="h-4 w-4 text-green-500" />
+                        <span>Score moyen</span>
+                      </h3>
+                      <p className="text-2xl font-bold">{stats.averageScore || 0}%</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-orange-500" />
+                        <span>Temps d'étude</span>
+                      </h3>
+                      <p className="text-2xl font-bold">{stats.totalStudyTime || 0} min</p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start" 
+                  onClick={handleExportData}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Exporter mes données
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => setShowImportDialog(true)}
+                >
+                  <FileUp className="h-4 w-4 mr-2" />
+                  Importer des données
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+          
+          {/* Section principale */}
+          <div className="md:w-2/3">
+            <Tabs defaultValue="profile">
+              <TabsList className="grid grid-cols-2 mb-6">
+                <TabsTrigger value="profile">Profil</TabsTrigger>
+                <TabsTrigger value="security">Sécurité</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="profile" className="space-y-6">
+                <Card className="bg-card/60 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5 text-primary" />
+                      Informations personnelles
+                    </CardTitle>
+                    <CardDescription>
+                      Modifiez vos informations personnelles
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nom d'utilisateur</Label>
                       <Input
                         id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Votre nom"
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
                         type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={userEmail}
+                        onChange={(e) => setUserEmail(e.target.value)}
+                        placeholder="votre.email@exemple.com"
                       />
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <CardTitle className="text-center">{user.name}</CardTitle>
-                    <CardDescription className="flex items-center justify-center mt-1">
-                      <Mail className="h-3 w-3 mr-1" />
-                      {user.email}
+                    <div className="space-y-2">
+                      <Label htmlFor="bio">Biographie</Label>
+                      <Textarea
+                        id="bio"
+                        value={userBio}
+                        onChange={(e) => setUserBio(e.target.value)}
+                        placeholder="Parlez-nous de vous..."
+                        rows={4}
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="justify-end">
+                    <Button onClick={handleProfileUpdate}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Enregistrer
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="security" className="space-y-6">
+                <Card className="bg-card/60 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Clé de session
+                    </CardTitle>
+                    <CardDescription>
+                      Votre clé de session permet d'accéder à votre compte
                     </CardDescription>
-                  </>
-                )}
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-6">
-              {editMode ? (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      rows={4}
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-secondary/30 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium mb-2 flex items-center">
-                    <User className="h-4 w-4 mr-1" />
-                    Bio
-                  </h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">
-                    {user.bio || "Aucune bio ajoutée."}
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-6">
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  Membre depuis
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(user.createdAt).toLocaleDateString('fr-FR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              </div>
-            </CardContent>
-
-            {editMode && (
-              <CardFooter className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={cancelEdit}>
-                  Annuler
-                </Button>
-                <Button onClick={handleProfileSave}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="decks">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-2">Mes Decks</h2>
-            <div className="flex items-center justify-between">
-              <p className="text-muted-foreground">
-                Gérez vos decks de flashcards personnels
-              </p>
-              <Button asChild>
-                <Link to="/create">
-                  <PenLine className="mr-2 h-4 w-4" />
-                  Créer un nouveau deck
-                </Link>
-              </Button>
-            </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="session-key-box">
+                      <div className="mb-4">
+                        <span className="text-sm text-muted-foreground block mb-2">Votre clé de session actuelle</span>
+                        <span className="session-key">{sessionKey}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Cette clé vous permet d'accéder à votre compte et à vos données. 
+                        Conservez-la précieusement.
+                      </p>
+                      <Button variant="outline" onClick={generateNewSessionKey}>
+                        Générer une nouvelle clé
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
-
-          {decks.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {decks.map((deck) => (
-                <div key={deck.id} className="relative group">
-                  <DeckCard {...deck} />
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-8 w-8 bg-white/80 hover:bg-white"
-                      onClick={() => {
-                        const originalDeck = getDecks().find(d => d.id === deck.id);
-                        if (originalDeck) {
-                          setEditingDeck({
-                            id: originalDeck.id,
-                            title: originalDeck.title,
-                            description: originalDeck.description,
-                            isPublic: originalDeck.isPublic,
-                          });
-                        }
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => {
-                        const deck = getDecks().find(d => d.id === deck.id);
-                        if (deck) {
-                          setSelectedDeck(deck);
-                          setDeleteDialogOpen(true);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Card className="text-center p-8">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <BookOpen className="h-16 w-16 text-muted-foreground/30" />
-                <h3 className="text-xl font-medium">Aucun deck trouvé</h3>
-                <p className="text-muted-foreground">
-                  Vous n'avez pas encore créé de deck de flashcards
-                </p>
-                <Button asChild className="mt-2">
-                  <Link to="/create">
-                    <PenLine className="mr-2 h-4 w-4" />
-                    Créer mon premier deck
-                  </Link>
-                </Button>
-              </div>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Dialog for deleting a deck */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        </div>
+      </div>
+      
+      {/* Dialog pour exporter les données */}
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Supprimer le deck</DialogTitle>
+            <DialogTitle>Exporter mes données</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer le deck "{selectedDeck?.title}" ? Cette action est irréversible.
+              Voici vos données au format JSON. Vous pouvez les copier ou les télécharger pour les sauvegarder.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Annuler
+          <div className="bg-muted p-3 rounded-md max-h-[300px] overflow-auto">
+            <pre className="text-xs whitespace-pre-wrap break-all">
+              {exportedData}
+            </pre>
+          </div>
+          <DialogFooter className="flex sm:justify-between">
+            <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+              Fermer
             </Button>
-            <Button variant="destructive" onClick={handleDeleteDeck}>
-              Supprimer
+            <Button onClick={handleDownloadExport}>
+              <FileDown className="h-4 w-4 mr-2" />
+              Télécharger
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Dialog for editing a deck */}
-      <Dialog
-        open={editingDeck !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditingDeck(null);
-        }}
-      >
-        <DialogContent>
+      
+      {/* Dialog pour importer les données */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Modifier le deck</DialogTitle>
+            <DialogTitle>Importer des données</DialogTitle>
+            <DialogDescription>
+              Collez le contenu JSON d'une sauvegarde précédente pour restaurer vos données.
+            </DialogDescription>
           </DialogHeader>
-          {editingDeck && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-title">Titre</Label>
-                <Input
-                  id="edit-title"
-                  value={editingDeck.title || ""}
-                  onChange={(e) => setEditingDeck({...editingDeck, title: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  rows={3}
-                  value={editingDeck.description || ""}
-                  onChange={(e) => setEditingDeck({...editingDeck, description: e.target.value})}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="edit-isPublic"
-                  checked={editingDeck.isPublic}
-                  onCheckedChange={(checked) => setEditingDeck({...editingDeck, isPublic: checked})}
-                />
-                <Label htmlFor="edit-isPublic" className="cursor-pointer flex items-center gap-2">
-                  {editingDeck.isPublic ? (
-                    <>
-                      <Globe className="h-4 w-4 text-green-500" />
-                      <span>Deck public</span>
-                      <span className="text-xs text-muted-foreground">(Visible par tous)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="h-4 w-4 text-yellow-500" />
-                      <span>Deck privé</span>
-                      <span className="text-xs text-muted-foreground">(Visible uniquement par vous)</span>
-                    </>
-                  )}
-                </Label>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingDeck(null)}>
+          <div className="space-y-4">
+            <Textarea
+              value={importData}
+              onChange={(e) => setImportData(e.target.value)}
+              placeholder='{"sessionKey":"ABCD1234", ...}'
+              rows={10}
+              className="font-mono text-xs"
+            />
+            <p className="text-sm text-destructive font-medium">
+              Attention : Cette action remplacera toutes vos données actuelles !
+            </p>
+          </div>
+          <DialogFooter className="flex sm:justify-between">
+            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
               Annuler
             </Button>
-            <Button onClick={handleUpdateDeck}>
-              <Save className="mr-2 h-4 w-4" />
-              Enregistrer
+            <Button variant="destructive" onClick={handleImportData}>
+              <FileUp className="h-4 w-4 mr-2" />
+              Importer
             </Button>
           </DialogFooter>
         </DialogContent>

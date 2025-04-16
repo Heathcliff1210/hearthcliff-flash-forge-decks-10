@@ -1,687 +1,470 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  ChevronLeft, 
-  ChevronRight, 
-  Check, 
-  X, 
-  RefreshCw, 
-  Shuffle,
-  BookOpen,
-  Layers,
-  Home,
-  Settings,
-  ThumbsUp,
-  ThumbsDown,
-  Volume,
-  ZoomIn,
-  ZoomOut,
-  Send,
-  AlertCircle
-} from "lucide-react";
 
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, X, CheckCircle2, XCircle, RotateCcw, Brain, Volume2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import FlashCard from "@/components/FlashCard";
-
-import { 
-  getDeck, 
-  getTheme,
-  getFlashcardsByDeck,
-  getFlashcardsByTheme,
-  Flashcard, 
-  Deck,
-  Theme
-} from "@/lib/localStorage";
-
-import { evaluateAnswer } from "@/services/geminiService";
+import { getDeck, getFlashcardsByDeck, Flashcard, Deck } from "@/lib/localStorage";
+import { recordCardStudy, updateSessionStats } from "@/lib/sessionManager";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { applyAI } from "@/lib/aiHelper";
 
 const StudyPage = () => {
-  const { id, themeId } = useParams<{ id: string; themeId?: string }>();
-  const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [deck, setDeck] = useState<Deck | null>(null);
-  const [theme, setTheme] = useState<Theme | null>(null);
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [cards, setCards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [autoFlip, setAutoFlip] = useState(false);
-  const [autoFlipDelay, setAutoFlipDelay] = useState(5);
-  const [shuffleCards, setShuffleCards] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [studyMode, setStudyMode] = useState<"all" | "learning" | "review">("all");
-  const [knownCards, setKnownCards] = useState<string[]>([]);
-  const [studyHistory, setStudyHistory] = useState<Array<{ id: string; known: boolean }>>([]);
-  const [autoPlayAudio, setAutoPlayAudio] = useState(true);
-  const [userAnswer, setUserAnswer] = useState("");
-  const [answerFeedback, setAnswerFeedback] = useState<{ score: number; feedback: string } | null>(null);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [useAiEvaluation, setUseAiEvaluation] = useState(true);
-  const [zoomLevel, setZoomLevel] = useState(100);
-  
-  const autoFlipTimer = useRef<NodeJS.Timeout | null>(null);
+  const [studyStartTime, setStudyStartTime] = useState<Date | null>(null);
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [results, setResults] = useState({ correct: 0, incorrect: 0 });
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [cardsShuffled, setCardsShuffled] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-  
+
+  // Initialisation des données
   useEffect(() => {
     if (!id) return;
-    
+
     const deckData = getDeck(id);
     if (!deckData) {
       toast({
         title: "Deck introuvable",
-        description: "Le deck que vous recherchez n'existe pas",
+        description: "Le deck demandé n'existe pas",
         variant: "destructive",
       });
-      navigate("/");
+      navigate("/home");
       return;
     }
-    
+
     setDeck(deckData);
-    
-    if (themeId) {
-      const themeData = getTheme(themeId);
-      if (!themeData) {
-        toast({
-          title: "Thème introuvable",
-          description: "Le thème que vous recherchez n'existe pas",
-          variant: "destructive",
-        });
-        navigate(`/deck/${id}`);
-        return;
-      }
-      
-      setTheme(themeData);
-      const cards = getFlashcardsByTheme(themeId);
-      setFlashcards(cards);
-    } else {
-      const cards = getFlashcardsByDeck(id);
-      setFlashcards(cards);
-    }
-    
-    setIsLoading(false);
-  }, [id, themeId, navigate, toast]);
-  
-  useEffect(() => {
-    if (shuffleCards) {
-      setFlashcards(cards => {
-        const shuffled = [...cards].sort(() => Math.random() - 0.5);
-        return shuffled;
+
+    // Récupérer les cartes du deck
+    const deckCards = getFlashcardsByDeck(id);
+    if (deckCards.length === 0) {
+      toast({
+        title: "Deck vide",
+        description: "Ce deck ne contient aucune flashcard",
+        variant: "destructive",
       });
+      navigate(`/deck/${id}`);
+      return;
     }
-  }, [shuffleCards]);
-  
-  useEffect(() => {
-    if (autoFlip && !isFlipped) {
-      autoFlipTimer.current = setTimeout(() => {
-        setIsFlipped(true);
-      }, autoFlipDelay * 1000);
-    }
+
+    // Mélanger les cartes
+    const shuffled = [...deckCards].sort(() => Math.random() - 0.5);
+    setCards(shuffled);
+    setCardsShuffled(true);
     
-    return () => {
-      if (autoFlipTimer.current) {
-        clearTimeout(autoFlipTimer.current);
-      }
-    };
-  }, [currentIndex, isFlipped, autoFlip, autoFlipDelay]);
-  
-  useEffect(() => {
-    if (flashcards.length > 0) {
-      setProgress(Math.round((currentIndex / flashcards.length) * 100));
-    }
-  }, [currentIndex, flashcards.length]);
-  
-  useEffect(() => {
-    if (autoPlayAudio && !isFlipped && flashcards[currentIndex]?.front.audio) {
-      if (audioRef.current) {
-        audioRef.current.src = flashcards[currentIndex].front.audio!;
-        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
-      }
-    } else if (autoPlayAudio && isFlipped && flashcards[currentIndex]?.back.audio) {
-      if (audioRef.current) {
-        audioRef.current.src = flashcards[currentIndex].back.audio!;
-        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
-      }
-    }
-  }, [currentIndex, isFlipped, autoPlayAudio, flashcards]);
-  
-  useEffect(() => {
-    if (!id) return;
+    // Démarrer le timer d'étude
+    setStudyStartTime(new Date());
     
-    let cards: Flashcard[];
-    
-    if (themeId) {
-      cards = getFlashcardsByTheme(themeId);
-    } else {
-      cards = getFlashcardsByDeck(id);
-    }
-    
-    if (studyMode === "learning") {
-      cards = cards.filter(card => !knownCards.includes(card.id));
-    } else if (studyMode === "review") {
-      cards = cards.filter(card => knownCards.includes(card.id));
-    }
-    
-    if (shuffleCards) {
-      cards = [...cards].sort(() => Math.random() - 0.5);
-    }
-    
-    setFlashcards(cards);
-    setCurrentIndex(0);
-    setIsFlipped(false);
-  }, [id, themeId, studyMode, knownCards, shuffleCards]);
-  
-  const handleCardFlip = () => {
-    if (autoFlipTimer.current) {
-      clearTimeout(autoFlipTimer.current);
-    }
+    // Enregistrer le début d'une session d'étude
+    updateSessionStats({
+      studySessions: 1,
+      lastStudyDate: new Date().toISOString(),
+    });
+  }, [id, navigate, toast]);
+
+  // Flip de la carte
+  const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
-  
-  const handleNextCard = () => {
-    if (currentIndex < flashcards.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setIsFlipped(false);
-    } else {
-      toast({
-        title: "Félicitations!",
-        description: "Vous avez terminé toutes les cartes de ce deck.",
-      });
-      setCurrentIndex(0);
-      setIsFlipped(false);
-    }
-  };
-  
-  const handlePrevCard = () => {
+
+  // Aller à la carte précédente
+  const handlePrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
       setIsFlipped(false);
+      setAiExplanation(null);
     }
   };
-  
-  const handleKnownCard = () => {
-    const currentCard = flashcards[currentIndex];
-    if (!knownCards.includes(currentCard.id)) {
-      setKnownCards([...knownCards, currentCard.id]);
+
+  // Aller à la carte suivante
+  const handleNext = () => {
+    if (currentIndex < cards.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setIsFlipped(false);
+      setAiExplanation(null);
+    } else {
+      // Fin de l'étude
+      handleEndStudy();
+    }
+  };
+
+  // Réponse correcte
+  const handleCorrect = () => {
+    // Enregistrer la réponse correcte
+    recordCardStudy(true);
+    setResults(prev => ({ ...prev, correct: prev.correct + 1 }));
+    handleNext();
+  };
+
+  // Réponse incorrecte
+  const handleIncorrect = () => {
+    // Enregistrer la réponse incorrecte
+    recordCardStudy(false);
+    setResults(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+    handleNext();
+  };
+
+  // Fin de l'étude
+  const handleEndStudy = () => {
+    if (studyStartTime) {
+      // Calculer le temps passé en minutes
+      const endTime = new Date();
+      const timeSpent = Math.round((endTime.getTime() - studyStartTime.getTime()) / 60000);
+      
+      // Mettre à jour les statistiques
+      updateSessionStats({
+        totalStudyTime: timeSpent,
+        cardsReviewed: cards.length,
+        correctAnswers: results.correct,
+        incorrectAnswers: results.incorrect,
+      });
     }
     
-    setStudyHistory([...studyHistory, { id: currentCard.id, known: true }]);
-    handleNextCard();
+    // Afficher la boîte de dialogue de fin
+    setShowEndDialog(true);
   };
-  
-  const handleUnknownCard = () => {
-    const currentCard = flashcards[currentIndex];
-    setKnownCards(knownCards.filter(id => id !== currentCard.id));
-    setStudyHistory([...studyHistory, { id: currentCard.id, known: false }]);
-    handleNextCard();
+
+  // Demander une explication à l'IA
+  const handleAskAI = async () => {
+    if (!cards[currentIndex]) return;
+    
+    setIsLoadingAI(true);
+    try {
+      const card = cards[currentIndex];
+      const question = card.front.text;
+      const answer = card.back.text;
+      
+      const explanation = await applyAI({
+        question,
+        answer,
+        model: "gemini-1.5-flash"
+      });
+      
+      setAiExplanation(explanation);
+    } catch (error) {
+      console.error("Erreur lors de la demande d'explication à l'IA:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'obtenir une explication de l'IA",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingAI(false);
+    }
   };
-  
-  const resetStudySession = () => {
-    setCurrentIndex(0);
-    setIsFlipped(false);
-    setKnownCards([]);
-    setStudyHistory([]);
-    toast({
-      title: "Session réinitialisée",
-      description: "Toutes les cartes ont été réinitialisées.",
-    });
-  };
-  
-  const shuffleCurrentCards = () => {
-    const shuffled = [...flashcards].sort(() => Math.random() - 0.5);
-    setFlashcards(shuffled);
-    setCurrentIndex(0);
-    setIsFlipped(false);
-    toast({
-      title: "Cartes mélangées",
-      description: "L'ordre des cartes a été modifié aléatoirement.",
-    });
-  };
-  
+
+  // Jouer l'audio
   const playAudio = (audioSrc: string) => {
     if (audioRef.current) {
       audioRef.current.src = audioSrc;
-      audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+      audioRef.current.play().catch(error => {
+        console.error("Error playing audio:", error);
+      });
     }
   };
-  
-  const handleEvaluateAnswer = async () => {
-    if (!isFlipped && userAnswer.trim()) {
-      setIsEvaluating(true);
-      
-      try {
-        if (useAiEvaluation) {
-          const feedback = await evaluateAnswer(
-            userAnswer,
-            flashcards[currentIndex].back.text
-          );
-          
-          setAnswerFeedback(feedback);
-          
-          if (feedback.score > 0.8) {
-            if (!knownCards.includes(flashcards[currentIndex].id)) {
-              setKnownCards([...knownCards, flashcards[currentIndex].id]);
-            }
-            setStudyHistory([...studyHistory, { id: flashcards[currentIndex].id, known: true }]);
-          } else if (feedback.score < 0.3) {
-            setKnownCards(knownCards.filter(id => id !== flashcards[currentIndex].id));
-            setStudyHistory([...studyHistory, { id: flashcards[currentIndex].id, known: false }]);
-          }
-        }
-        
-        setIsFlipped(true);
-      } catch (error) {
-        console.error("Error evaluating answer:", error);
-        toast({
-          title: "Erreur d'évaluation",
-          description: "Impossible d'évaluer votre réponse pour le moment.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsEvaluating(false);
-      }
+
+  // Recommencer l'étude
+  const handleRestartStudy = () => {
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setResults({ correct: 0, incorrect: 0 });
+    setShowEndDialog(false);
+    setStudyStartTime(new Date());
+    
+    // Mélanger à nouveau les cartes
+    setCards(prevCards => [...prevCards].sort(() => Math.random() - 0.5));
+  };
+
+  // Revenir au deck
+  const handleReturnToDeck = () => {
+    if (id) {
+      navigate(`/deck/${id}`);
     } else {
-      handleCardFlip();
+      navigate("/home");
     }
   };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleEvaluateAnswer();
-    }
-  };
-  
-  const handleNextWithReset = () => {
-    setUserAnswer("");
-    setAnswerFeedback(null);
-    handleNextCard();
-  };
-  
-  const handlePrevWithReset = () => {
-    setUserAnswer("");
-    setAnswerFeedback(null);
-    handlePrevCard();
-  };
-  
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 10, 150));
-  };
-  
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 10, 70));
-  };
-  
-  if (isLoading) {
+
+  if (!deck || cards.length === 0 || !cardsShuffled) {
     return (
-      <div className="container px-4 py-8 flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Chargement...</p>
+      <div className="container flex flex-col items-center justify-center py-12">
+        <div className="animate-pulse flex flex-col items-center space-y-4">
+          <div className="rounded-full bg-primary/20 h-12 w-12 flex items-center justify-center">
+            <Brain className="h-6 w-6 text-primary/50 animate-spin" />
+          </div>
+          <div className="h-4 bg-primary/20 rounded w-48"></div>
+          <div className="h-3 bg-primary/10 rounded w-36"></div>
         </div>
       </div>
     );
   }
-  
-  if (flashcards.length === 0) {
-    return (
-      <div className="container px-4 py-8">
-        <Link to={themeId ? `/deck/${id}/theme/${themeId}` : `/deck/${id}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Retour
-        </Link>
-        
-        <div className="text-center py-12">
-          <BookOpen className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-          <h1 className="text-2xl font-bold mb-4">Aucune carte à étudier</h1>
-          <p className="text-muted-foreground mb-6">
-            {studyMode === "learning" 
-              ? "Vous avez déjà appris toutes les cartes ! Essayez le mode révision." 
-              : studyMode === "review" 
-                ? "Aucune carte à réviser. Essayez d'abord le mode apprentissage." 
-                : "Ce deck ne contient pas encore de flashcards."}
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button asChild>
-              <Link to={themeId ? `/deck/${id}/theme/${themeId}` : `/deck/${id}`}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Retour
-              </Link>
+
+  const currentCard = cards[currentIndex];
+  const progress = Math.round(((currentIndex + 1) / cards.length) * 100);
+
+  return (
+    <div className="container px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col space-y-6">
+          {/* Header avec informations */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">{deck.title}</h1>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {currentIndex + 1}/{cards.length} cartes
+                </Badge>
+                <Progress value={progress} className="h-2 w-24" />
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleReturnToDeck}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Retour au deck
             </Button>
-            
-            {studyMode !== "all" && (
-              <Button variant="outline" onClick={() => setStudyMode("all")}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Voir toutes les cartes
+          </div>
+
+          {/* Carte d'étude */}
+          <div className="relative perspective-1000 w-full min-h-[400px]">
+            <div 
+              className={`relative w-full h-full min-h-[400px] transition-transform duration-500 transform-style-3d ${isFlipped ? "rotate-y-180" : ""}`}
+              onClick={handleFlip}
+            >
+              {/* Face avant */}
+              <div className="absolute w-full h-full backface-hidden bg-gradient-to-br from-indigo-500/20 to-purple-600/30 dark:from-indigo-900/50 dark:to-purple-800/40 rounded-xl p-6 flex flex-col items-center justify-center gap-4 border border-indigo-200/60 dark:border-indigo-700/60 shadow-lg">
+                {currentCard.front.image && (
+                  <div className="w-full max-w-md aspect-video overflow-hidden rounded-lg mb-4 border border-indigo-200/60 dark:border-indigo-700/60 shadow-md hover:shadow-lg transition-all duration-300">
+                    <img
+                      src={currentCard.front.image}
+                      alt="Front side"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div className="text-2xl font-medium text-center text-primary dark:text-primary-foreground max-w-lg">
+                  {currentCard.front.text}
+                </div>
+                
+                {currentCard.front.additionalInfo && (
+                  <div className="p-3 mt-2 bg-indigo-100/80 dark:bg-indigo-950/50 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800 max-w-lg">
+                    {currentCard.front.additionalInfo}
+                  </div>
+                )}
+
+                {currentCard.front.audio && (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAudio(currentCard.front.audio!);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 border-indigo-200 dark:border-indigo-700"
+                  >
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    Écouter l'audio
+                  </Button>
+                )}
+                
+                <div className="absolute bottom-4 right-4 text-sm text-muted-foreground">
+                  Cliquez pour voir la réponse
+                </div>
+              </div>
+              
+              {/* Face arrière */}
+              <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-purple-500/20 to-pink-600/30 dark:from-purple-900/50 dark:to-pink-800/40 rounded-xl p-6 flex flex-col items-center justify-center gap-4 border border-purple-200/60 dark:border-purple-700/60 shadow-lg">
+                {currentCard.back.image && (
+                  <div className="w-full max-w-md aspect-video overflow-hidden rounded-lg mb-4 border border-purple-200/60 dark:border-purple-700/60 shadow-md hover:shadow-lg transition-all duration-300">
+                    <img
+                      src={currentCard.back.image}
+                      alt="Back side"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div className="text-2xl font-medium text-center text-primary dark:text-primary-foreground max-w-lg">
+                  {currentCard.back.text}
+                </div>
+                
+                {currentCard.back.additionalInfo && (
+                  <div className="p-3 mt-2 bg-pink-100/80 dark:bg-pink-950/50 rounded-lg text-sm border border-pink-200 dark:border-pink-800 max-w-lg">
+                    {currentCard.back.additionalInfo}
+                  </div>
+                )}
+
+                {currentCard.back.audio && (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAudio(currentCard.back.audio!);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-800 border-pink-200 dark:border-pink-700"
+                  >
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    Écouter l'audio
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Explication IA */}
+          {aiExplanation && (
+            <Card className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-200 dark:border-blue-800">
+              <CardContent className="p-4">
+                <h3 className="font-medium mb-2 flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-primary" />
+                  Explication de l'IA
+                </h3>
+                <div className="text-sm">
+                  {aiExplanation}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Boutons de navigation et de réponse */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Précédent
               </Button>
+              
+              {!isFlipped ? (
+                <Button onClick={handleFlip}>
+                  Voir la réponse
+                </Button>
+              ) : (
+                <Button onClick={handleNext}>
+                  {currentIndex < cards.length - 1 ? (
+                    <>
+                      Suivant
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </>
+                  ) : (
+                    "Terminer"
+                  )}
+                </Button>
+              )}
+            </div>
+            
+            {isFlipped && (
+              <div className="flex gap-2 ml-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={handleAskAI}
+                  disabled={isLoadingAI} 
+                  className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                >
+                  <Brain className={`h-4 w-4 mr-2 ${isLoadingAI ? 'animate-spin' : ''}`} />
+                  {isLoadingAI ? "Chargement..." : aiExplanation ? "Nouvelle explication" : "Expliquer"}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleIncorrect}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Incorrect
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleCorrect}
+                  className="bg-green-500/10 hover:bg-green-500/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Correct
+                </Button>
+              </div>
             )}
           </div>
         </div>
       </div>
-    );
-  }
-  
-  return (
-    <div className="container max-w-4xl px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <Link to={themeId ? `/deck/${id}/theme/${themeId}` : `/deck/${id}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Retour au {themeId ? "thème" : "deck"}
-        </Link>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleZoomOut} disabled={zoomLevel <= 70}>
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <span className="text-xs text-muted-foreground">{zoomLevel}%</span>
-          <Button variant="ghost" size="icon" onClick={handleZoomIn} disabled={zoomLevel >= 150}>
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)}>
-            <Settings className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
       
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h1 className="text-2xl font-bold">
-            {theme ? theme.title : deck?.title}
-          </h1>
-          <span className="text-sm text-muted-foreground">
-            {currentIndex + 1} / {flashcards.length}
-          </span>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </div>
-      
-      <div className="flex justify-center mb-6" style={{ transform: `scale(${zoomLevel / 100})`, transition: 'transform 0.3s ease' }}>
-        <div className="w-full max-w-2xl">
-          {flashcards[currentIndex] && (
-            <FlashCard
-              id={flashcards[currentIndex].id}
-              front={flashcards[currentIndex].front}
-              back={flashcards[currentIndex].back}
-              onCardFlip={() => handleCardFlip()}
-              className={isFlipped ? "flipped" : ""}
-            />
-          )}
-        </div>
-      </div>
-      
-      {!isFlipped && (
-        <div className="mb-6">
-          <div className="flex flex-col space-y-2">
-            <Label htmlFor="answer">Votre réponse :</Label>
-            <div className="flex gap-2">
-              <Textarea
-                id="answer"
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Saisissez votre réponse..."
-                className="flex-1 resize-none min-h-[100px]"
-              />
-              <Button 
-                className="self-end"
-                onClick={handleEvaluateAnswer}
-                disabled={isEvaluating}
-              >
-                {isEvaluating ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Vérifier
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {isFlipped && answerFeedback && (
-        <Card className={`mb-6 ${
-          answerFeedback.score > 0.8 
-            ? "border-green-500 bg-green-50 dark:bg-green-950/20" 
-            : answerFeedback.score < 0.3 
-              ? "border-red-500 bg-red-50 dark:bg-red-950/20" 
-              : "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20"
-        }`}>
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-2">
-              {answerFeedback.score > 0.8 ? (
-                <Check className="h-5 w-5 text-green-500 mt-0.5" />
-              ) : answerFeedback.score < 0.3 ? (
-                <X className="h-5 w-5 text-red-500 mt-0.5" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
-              )}
-              <div>
-                <Badge variant={answerFeedback.score > 0.8 ? "success" : answerFeedback.score < 0.3 ? "destructive" : "warning"} className="mb-2">
-                  {answerFeedback.score > 0.8 
-                    ? "Correct" 
-                    : answerFeedback.score < 0.3 
-                      ? "Incorrect" 
-                      : "Partiellement correct"}
-                </Badge>
-                <p className="text-sm">{answerFeedback.feedback}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      <div className="flex justify-center gap-3 mb-6">
-        <Button 
-          variant="outline" 
-          size="icon"
-          onClick={handlePrevWithReset}
-          disabled={currentIndex === 0}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        
-        {!isFlipped ? (
-          <Button variant="outline" onClick={handleCardFlip}>
-            Voir la réponse
-          </Button>
-        ) : (
-          <Button variant="outline" onClick={handleCardFlip}>
-            Voir la question
-          </Button>
-        )}
-        
-        <Button 
-          variant="outline" 
-          size="icon"
-          onClick={handleNextWithReset}
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
-      
-      {isFlipped && (
-        <div className="flex justify-center gap-3 mb-6">
-          <Button variant="outline" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white" onClick={handleKnownCard}>
-            <ThumbsUp className="mr-2 h-4 w-4" />
-            Je connais
-          </Button>
-          
-          <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white" onClick={handleUnknownCard}>
-            <ThumbsDown className="mr-2 h-4 w-4" />
-            À revoir
-          </Button>
-        </div>
-      )}
-      
-      <div className="flex justify-center gap-3">
-        <Button variant="ghost" size="sm" onClick={resetStudySession}>
-          <RefreshCw className="mr-1 h-4 w-4" />
-          Réinitialiser
-        </Button>
-        
-        <Button variant="ghost" size="sm" onClick={shuffleCurrentCards}>
-          <Shuffle className="mr-1 h-4 w-4" />
-          Mélanger
-        </Button>
-        
-        {(flashcards[currentIndex]?.front.audio && !isFlipped) && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => playAudio(flashcards[currentIndex].front.audio!)}
-          >
-            <Volume className="mr-1 h-4 w-4" />
-            Écouter
-          </Button>
-        )}
-        
-        {(flashcards[currentIndex]?.back.audio && isFlipped) && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => playAudio(flashcards[currentIndex].back.audio!)}
-          >
-            <Volume className="mr-1 h-4 w-4" />
-            Écouter
-          </Button>
-        )}
-      </div>
-      
-      <audio ref={audioRef} className="hidden" />
-      
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent>
+      {/* Boîte de dialogue de fin d'étude */}
+      <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Paramètres d'étude</DialogTitle>
+            <DialogTitle>Session d'étude terminée</DialogTitle>
             <DialogDescription>
-              Personnalisez votre session d'apprentissage
+              Vous avez terminé toutes les cartes de ce deck !
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <Label>Mode d'étude</Label>
-              <RadioGroup value={studyMode} onValueChange={(value) => setStudyMode(value as "all" | "learning" | "review")}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="all" />
-                  <Label htmlFor="all">Toutes les cartes</Label>
+          <div className="py-4">
+            <div className="bg-muted p-4 rounded-lg space-y-4">
+              <h3 className="font-medium text-center">Résultats</h3>
+              
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="bg-green-500/10 p-3 rounded-lg">
+                  <div className="flex justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mb-1" />
+                  </div>
+                  <div className="text-sm font-medium">Correct</div>
+                  <div className="text-2xl font-bold">{results.correct}</div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="learning" id="learning" />
-                  <Label htmlFor="learning">Apprentissage (cartes non maîtrisées)</Label>
+                
+                <div className="bg-red-500/10 p-3 rounded-lg">
+                  <div className="flex justify-center">
+                    <XCircle className="h-5 w-5 text-red-500 mb-1" />
+                  </div>
+                  <div className="text-sm font-medium">Incorrect</div>
+                  <div className="text-2xl font-bold">{results.incorrect}</div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="review" id="review" />
-                  <Label htmlFor="review">Révision (cartes maîtrisées)</Label>
+              </div>
+              
+              <div className="bg-primary/10 p-3 rounded-lg text-center">
+                <div className="text-sm font-medium">Taux de réussite</div>
+                <div className="text-2xl font-bold">
+                  {results.correct + results.incorrect > 0
+                    ? Math.round((results.correct / (results.correct + results.incorrect)) * 100)
+                    : 0}%
                 </div>
-              </RadioGroup>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="shuffle">Mélanger les cartes</Label>
-                <p className="text-xs text-muted-foreground">
-                  Affiche les cartes dans un ordre aléatoire
-                </p>
               </div>
-              <Switch
-                id="shuffle"
-                checked={shuffleCards}
-                onCheckedChange={setShuffleCards}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="auto-flip">Retourner automatiquement</Label>
-                <p className="text-xs text-muted-foreground">
-                  Retourne automatiquement la carte après un délai
-                </p>
-              </div>
-              <Switch
-                id="auto-flip"
-                checked={autoFlip}
-                onCheckedChange={setAutoFlip}
-              />
-            </div>
-            
-            {autoFlip && (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="auto-flip-delay">Délai de retournement: {autoFlipDelay} secondes</Label>
-                </div>
-                <Slider
-                  id="auto-flip-delay"
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={[autoFlipDelay]}
-                  onValueChange={(value) => setAutoFlipDelay(value[0])}
-                />
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="auto-play-audio">Lecture audio automatique</Label>
-                <p className="text-xs text-muted-foreground">
-                  Joue automatiquement l'audio si disponible
-                </p>
-              </div>
-              <Switch
-                id="auto-play-audio"
-                checked={autoPlayAudio}
-                onCheckedChange={setAutoPlayAudio}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="ai-evaluation">Évaluation par IA</Label>
-                <p className="text-xs text-muted-foreground">
-                  Utilise l'IA pour évaluer vos réponses
-                </p>
-              </div>
-              <Switch
-                id="ai-evaluation"
-                checked={useAiEvaluation}
-                onCheckedChange={setUseAiEvaluation}
-              />
             </div>
           </div>
           
-          <DialogFooter>
-            <div className="flex w-full justify-between">
-              <Button variant="outline" asChild>
-                <Link to="/">
-                  <Home className="mr-2 h-4 w-4" />
-                  Accueil
-                </Link>
-              </Button>
-              
-              <Button onClick={() => setShowSettings(false)}>
-                Fermer
-              </Button>
-            </div>
+          <DialogFooter className="sm:justify-between">
+            <Button variant="outline" onClick={handleReturnToDeck}>
+              <X className="h-4 w-4 mr-2" />
+              Quitter
+            </Button>
+            
+            <Button onClick={handleRestartStudy}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Recommencer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <audio ref={audioRef} className="hidden" />
     </div>
   );
 };
