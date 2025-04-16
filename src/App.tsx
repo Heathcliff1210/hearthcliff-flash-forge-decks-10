@@ -28,6 +28,7 @@ import Index from "@/pages/Index";
 import LearningMethodsPage from "@/pages/LearningMethodsPage";
 import StatsPage from "@/pages/StatsPage";
 import SharePage from "@/pages/SharePage";
+import MyDecksPage from "@/pages/MyDecksPage";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,18 @@ const App = () => {
                     <Navbar />
                     <main className="flex-1">
                       <ProfilePage />
+                    </main>
+                    <Footer />
+                  </>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/my-decks" element={
+                <ProtectedRoute>
+                  <>
+                    <Navbar />
+                    <main className="flex-1">
+                      <MyDecksPage />
                     </main>
                     <Footer />
                   </>

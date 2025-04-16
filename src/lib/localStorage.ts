@@ -160,6 +160,34 @@ export const deleteDeck = (id: string): boolean => {
   return true;
 };
 
+// Owner check function - improved and comprehensive
+import { getSessionKey } from "@/lib/sessionManager";
+
+export const isUserOwner = (authorId: string): boolean => {
+  // Get the current user's ID
+  const userData = getUser();
+  const sessionKey = getSessionKey();
+  const currentUserId = userData?.id || sessionKey || "anonymous";
+  
+  // Log for debugging
+  console.log("Owner status check:", {
+    deckAuthorId: authorId,
+    userId: currentUserId,
+    isOwner: authorId === currentUserId || authorId === "anonymous"
+  });
+  
+  // Check if the authorId matches the current user's ID
+  // Also consider "anonymous" authorId as owned by the current user for backward compatibility
+  return authorId === currentUserId || authorId === "anonymous";
+};
+
+export const isUserDeckOwner = (deckId: string): boolean => {
+  const deck = getDeck(deckId);
+  if (!deck) return false;
+  
+  return isUserOwner(deck.authorId);
+};
+
 // Theme functions
 export const getThemes = (): Theme[] => {
   return getItem<Theme[]>(STORAGE_KEYS.THEMES, []);
