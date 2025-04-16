@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { 
@@ -8,7 +7,9 @@ import {
   ArrowLeft,
   Check,
   X,
-  Info
+  Info,
+  Edit,
+  Trash2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ import {
   getBase64,
   updateFlashcard,
   deleteFlashcard,
+  deleteTheme,
+  updateTheme,
   Flashcard,
   Theme,
   Deck
@@ -47,10 +50,16 @@ const ThemePage = () => {
   const [isOwner, setIsOwner] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showCardDialog, setShowCardDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showFrontAdditionalInfo, setShowFrontAdditionalInfo] = useState(false);
   const [showBackAdditionalInfo, setShowBackAdditionalInfo] = useState(false);
 
-  // New flashcard form
+  const [editingTheme, setEditingTheme] = useState({
+    title: "",
+    description: "",
+  });
+
   const [newCard, setNewCard] = useState({
     front: {
       text: "",
@@ -93,14 +102,27 @@ const ThemePage = () => {
     
     setDeck(deckData);
     setTheme(themeData);
-    setIsOwner(deckData.authorId === user?.id);
     
-    // Load flashcards
+    const currentUser = getUser();
+    setUser(currentUser);
+    const ownerStatus = currentUser && deckData.authorId === currentUser.id;
+    console.log("Theme page owner status check:", {
+      deckAuthorId: deckData.authorId,
+      userId: currentUser?.id,
+      isOwner: ownerStatus
+    });
+    setIsOwner(ownerStatus);
+    
+    setEditingTheme({
+      title: themeData.title,
+      description: themeData.description,
+    });
+    
     const themeCards = getFlashcardsByTheme(themeId);
     setFlashcards(themeCards);
     
     setIsLoading(false);
-  }, [deckId, themeId, navigate, toast, user?.id]);
+  }, [deckId, themeId, navigate, toast]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
     const file = e.target.files?.[0];
@@ -197,6 +219,64 @@ const ThemePage = () => {
     setFlashcards(updatedCards);
   };
 
+  const handleUpdateTheme = () => {
+    if (!theme || !themeId) return;
+    
+    if (!editingTheme.title.trim()) {
+      toast({
+        title: "Titre requis",
+        description: "Veuillez saisir un titre pour le thème",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const updated = updateTheme(themeId, {
+        title: editingTheme.title.trim(),
+        description: editingTheme.description.trim(),
+      });
+      
+      if (updated) {
+        setTheme(updated);
+        setShowEditDialog(false);
+        toast({
+          title: "Thème mis à jour",
+          description: "Le thème a été modifié avec succès",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating theme:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le thème",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTheme = () => {
+    if (!theme || !themeId || !deckId) return;
+    
+    try {
+      const success = deleteTheme(themeId);
+      if (success) {
+        toast({
+          title: "Thème supprimé",
+          description: "Le thème a été supprimé avec succès",
+        });
+        navigate(`/deck/${deckId}`);
+      }
+    } catch (error) {
+      console.error("Error deleting theme:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le thème",
+        variant: "destructive",
+      });
+    }
+  };
+
   const createNewCard = () => {
     if (!deckId || !themeId) return;
     
@@ -243,7 +323,6 @@ const ThemePage = () => {
       setFlashcards([...flashcards, card]);
       setShowCardDialog(false);
       
-      // Reset form
       setNewCard({
         front: {
           text: "",
@@ -342,6 +421,27 @@ const ThemePage = () => {
                 {theme.description}
               </p>
             </div>
+            
+            {isOwner && (
+              <div className="flex gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-primary hover:text-primary/80 hover:bg-primary/10"
+                  onClick={() => setShowEditDialog(true)}
+                >
+                  <Edit className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2">
@@ -410,7 +510,6 @@ const ThemePage = () => {
         )}
       </div>
       
-      {/* Add Card Dialog */}
       <Dialog open={showCardDialog} onOpenChange={setShowCardDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -421,7 +520,6 @@ const ThemePage = () => {
           </DialogHeader>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            {/* Front of the card */}
             <div className="space-y-4 border p-4 rounded-lg">
               <h3 className="font-medium">Recto de la carte</h3>
               
@@ -531,7 +629,6 @@ const ThemePage = () => {
               )}
             </div>
             
-            {/* Back of the card */}
             <div className="space-y-4 border p-4 rounded-lg">
               <h3 className="font-medium">Verso de la carte</h3>
               
@@ -649,6 +746,61 @@ const ThemePage = () => {
             <Button onClick={createNewCard} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary">
               <Check className="mr-2 h-4 w-4" />
               Ajouter la carte
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le thème</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Titre</Label>
+              <Input
+                id="edit-title"
+                value={editingTheme.title}
+                onChange={(e) => setEditingTheme({ ...editingTheme, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                rows={3}
+                value={editingTheme.description}
+                onChange={(e) => setEditingTheme({ ...editingTheme, description: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleUpdateTheme}>
+              <Check className="mr-2 h-4 w-4" />
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le thème</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer le thème "{theme.title}" ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteTheme}>
+              Supprimer
             </Button>
           </DialogFooter>
         </DialogContent>

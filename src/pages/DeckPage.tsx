@@ -12,7 +12,8 @@ import {
   Pencil,
   ArrowLeft,
   PlusIcon,
-  Check
+  Check,
+  Trash2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import FlashCard from "@/components/FlashCard";
 import ThemeCard from "@/components/ThemeCard";
 import FlashCardItem from "@/components/FlashCardItem";
@@ -39,6 +41,7 @@ import {
   createFlashcard, 
   getBase64, 
   createShareCode,
+  deleteDeck,
   Theme,
   Flashcard
 } from "@/lib/localStorage";
@@ -56,6 +59,7 @@ const DeckPage = () => {
   const [showThemeDialog, setShowThemeDialog] = useState(false);
   const [showCardDialog, setShowCardDialog] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   
   const [newTheme, setNewTheme] = useState({
@@ -95,8 +99,16 @@ const DeckPage = () => {
     }
     
     setDeck(deckData);
-    const user = getUser();
-    setIsOwner(deckData.authorId === user?.id);
+    const currentUser = getUser();
+    setUser(currentUser);
+    
+    const ownerStatus = currentUser && deckData.authorId === currentUser.id;
+    console.log("Owner status check:", {
+      deckAuthorId: deckData.authorId,
+      userId: currentUser?.id,
+      isOwner: ownerStatus
+    });
+    setIsOwner(ownerStatus);
     
     const deckThemes = getThemesByDeck(id);
     setThemes(deckThemes);
@@ -363,6 +375,28 @@ const DeckPage = () => {
     });
   };
   
+  const handleDeleteDeck = () => {
+    if (!id) return;
+    
+    try {
+      const success = deleteDeck(id);
+      if (success) {
+        toast({
+          title: "Deck supprimé",
+          description: "Le deck a été supprimé avec succès",
+        });
+        navigate("/");
+      }
+    } catch (error) {
+      console.error("Error deleting deck:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le deck",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const handleNextCard = () => {
     if (activeCardIndex < flashcards.length - 1) {
       setActiveCardIndex(activeCardIndex + 1);
@@ -459,11 +493,16 @@ const DeckPage = () => {
           <div className="flex items-start justify-between">
             <h1 className="text-3xl font-bold mb-2">{deck.title}</h1>
             {isOwner && (
-              <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
-                <Link to={`/deck/${id}/edit`}>
-                  <Edit className="h-5 w-5" />
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
+                  <Link to={`/deck/${id}/edit`}>
+                    <Edit className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 hover:bg-destructive/10" onClick={() => setShowDeleteDialog(true)}>
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              </div>
             )}
           </div>
           
@@ -865,6 +904,25 @@ const DeckPage = () => {
               Ce lien expirera dans 30 jours. Les personnes qui importent votre deck créeront une copie indépendante.
             </p>
           </div>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le deck</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer le deck "{deck.title}" ? Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteDeck}>
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

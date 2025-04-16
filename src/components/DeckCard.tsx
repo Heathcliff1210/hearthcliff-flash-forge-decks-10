@@ -13,6 +13,8 @@ export interface DeckCardProps {
   tags: string[];
   author: string;
   isPublic?: boolean;
+  authorId?: string;
+  themeCount?: number;
 }
 
 const DeckCard = ({
@@ -24,6 +26,7 @@ const DeckCard = ({
   tags,
   author,
   isPublic = true,
+  themeCount = 0,
 }: DeckCardProps) => {
   return (
     <Link to={`/deck/${id}`}>
@@ -75,9 +78,17 @@ const DeckCard = ({
           </div>
         </CardContent>
         <CardFooter className="flex justify-between p-4 pt-0">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <BookOpen className="h-3 w-3" />
-            <span>{cardCount} cartes</span>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <BookOpen className="h-3 w-3" />
+              <span>{cardCount} cartes</span>
+            </div>
+            {themeCount > 0 && (
+              <div className="flex items-center gap-1">
+                <span>•</span>
+                <span>{themeCount} thèmes</span>
+              </div>
+            )}
           </div>
           <div className="flex gap-3">
             <button
