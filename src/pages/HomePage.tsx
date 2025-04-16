@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRightIcon, Globe, Plus, TrendingUp, BookOpen, ArrowRight } from "lucide-react";
@@ -29,6 +28,8 @@ const HomePage = () => {
         tags: deck.tags,
         author: userData?.name || "Anonyme",
         isPublic: deck.isPublic,
+        authorId: deck.authorId, // Add the authorId property
+        themeCount: 0, // Include default themeCount
       }));
 
     setRecentDecks(deckCards);
@@ -143,6 +144,8 @@ const HomePage = () => {
                   tags={deck.tags}
                   author={deck.author}
                   isPublic={deck.isPublic}
+                  authorId={deck.authorId}
+                  themeCount={deck.themeCount}
                 />
               ))}
             </div>

@@ -41,6 +41,8 @@ const ExplorePage = () => {
         tags: deck.tags,
         author: user?.name || "Anonyme",
         isPublic: deck.isPublic,
+        authorId: deck.authorId, // Add the authorId property
+        themeCount: 0, // Include default themeCount
       };
     });
 
