@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Download, Upload, Info, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,14 +20,11 @@ const UserDataExport = () => {
       const user = getUser();
       const decks = getDecks().filter(deck => deck.authorId === user?.id);
       
-      // Récupérer les IDs des decks de l'utilisateur
       const deckIds = decks.map(deck => deck.id);
       
-      // Filtrer les thèmes et flashcards associés aux decks de l'utilisateur
       const themes = getThemes().filter(theme => deckIds.includes(theme.deckId));
       const flashcards = getFlashcards().filter(card => deckIds.includes(card.deckId));
       
-      // Créer l'objet de données à exporter
       const exportData = {
         user,
         decks,
@@ -38,7 +34,6 @@ const UserDataExport = () => {
         appVersion: "1.0.0"
       };
       
-      // Convertir en JSON avec formatage
       const jsonString = JSON.stringify(exportData, null, 2);
       setJsonData(jsonString);
       
@@ -140,7 +135,6 @@ const UserDataExport = () => {
       
       const data = JSON.parse(importData);
       
-      // Vérifier la structure des données
       if (!data.user || !data.decks || !data.themes || !data.flashcards) {
         toast({
           title: "Structure invalide",
@@ -150,11 +144,7 @@ const UserDataExport = () => {
         return;
       }
       
-      // Importer l'utilisateur
       setUser(data.user);
-      
-      // Pour les decks, thèmes et flashcards, nous devrions les fusionner avec les données existantes
-      // Cette implémentation simplifiée remplace juste l'utilisateur
       
       toast({
         title: "Données importées",
@@ -163,7 +153,6 @@ const UserDataExport = () => {
       
       setShowImportDialog(false);
       
-      // Recharger la page pour refléter les changements
       window.location.reload();
     } catch (error) {
       console.error("Error importing data:", error);
@@ -223,7 +212,7 @@ const UserDataExport = () => {
                   </DialogHeader>
                   
                   <div className="space-y-4 py-4">
-                    <Alert variant="warning">
+                    <Alert>
                       <Info className="h-4 w-4" />
                       <AlertTitle>Attention</AlertTitle>
                       <AlertDescription>

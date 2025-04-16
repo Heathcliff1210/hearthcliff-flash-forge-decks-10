@@ -100,11 +100,11 @@ const UserDecks = () => {
               title={deck.title}
               description={deck.description}
               cardCount={0} // Cela sera calculé dans le composant
-              themeCount={0} // Cela sera calculé dans le composant
               coverImage={deck.coverImage}
               isPublic={deck.isPublic}
               tags={deck.tags}
               authorId={deck.authorId}
+              author={user?.name || "Utilisateur"}
             />
           ))}
         </div>

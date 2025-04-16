@@ -9,10 +9,12 @@ export interface DeckCardProps {
   title: string;
   description: string;
   cardCount: number;
+  themeCount?: number;
   coverImage?: string;
   tags: string[];
-  author: string;
+  author?: string;
   isPublic?: boolean;
+  authorId?: string;
 }
 
 const DeckCard = ({
@@ -20,10 +22,12 @@ const DeckCard = ({
   title,
   description,
   cardCount,
+  themeCount,
   coverImage,
   tags,
   author,
   isPublic = true,
+  authorId,
 }: DeckCardProps) => {
   return (
     <Link to={`/deck/${id}`}>
@@ -56,7 +60,7 @@ const DeckCard = ({
         <CardHeader className="p-4">
           <CardTitle className="line-clamp-1">{title}</CardTitle>
           <CardDescription className="flex items-center text-xs">
-            Par {author}
+            Par {author || "Utilisateur"}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0">
