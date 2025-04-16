@@ -12,7 +12,8 @@ import {
   Pencil,
   ArrowLeft,
   PlusIcon,
-  Check
+  Check,
+  Trash2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import FlashCard from "@/components/FlashCard";
 import ThemeCard from "@/components/ThemeCard";
 import FlashCardItem from "@/components/FlashCardItem";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 import { 
   getDeck, 
@@ -39,6 +41,7 @@ import {
   createFlashcard, 
   getBase64, 
   createShareCode,
+  deleteDeck,
   Theme,
   Flashcard
 } from "@/lib/localStorage";
@@ -379,6 +382,34 @@ const DeckPage = () => {
     }
   };
   
+  const handleDeleteDeck = () => {
+    if (!id) return;
+    
+    try {
+      const success = deleteDeck(id);
+      if (success) {
+        toast({
+          title: "Deck supprimé",
+          description: "Le deck a été supprimé avec succès",
+        });
+        navigate("/");
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer le deck",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting deck:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression",
+        variant: "destructive",
+      });
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="container px-4 py-8 flex items-center justify-center h-64">
@@ -459,11 +490,34 @@ const DeckPage = () => {
           <div className="flex items-start justify-between">
             <h1 className="text-3xl font-bold mb-2">{deck.title}</h1>
             {isOwner && (
-              <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
-                <Link to={`/deck/${id}/edit`}>
-                  <Edit className="h-5 w-5" />
-                </Link>
-              </Button>
+              <div className="flex space-x-2">
+                <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
+                  <Link to={`/deck/${id}/edit`}>
+                    <Edit className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-100/20">
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action ne peut pas être annulée. Cela supprimera définitivement le deck et toutes ses cartes et thèmes.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteDeck} className="bg-red-500 hover:bg-red-600">
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             )}
           </div>
           
@@ -542,7 +596,7 @@ const DeckPage = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Cartes ({flashcards.length})</h2>
                 {isOwner && (
-                  <Button variant="outline" size="sm" onClick={() => setShowCardDialog(true)}>
+                  <Button variant="outline" size="sm" onClick={() => setShowCardDialog(true)} className="border-primary/30 hover:border-primary/60 transition-all duration-300">
                     <PlusIcon className="h-4 w-4 mr-1" />
                     Ajouter une carte
                   </Button>
@@ -568,7 +622,7 @@ const DeckPage = () => {
                 Ce deck ne contient pas encore de flashcards
               </p>
               {isOwner && (
-                <Button onClick={() => setShowCardDialog(true)}>
+                <Button onClick={() => setShowCardDialog(true)} className="bg-primary hover:bg-primary/90 text-white">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Ajouter une carte
                 </Button>
@@ -583,7 +637,7 @@ const DeckPage = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Thèmes ({themes.length})</h2>
                 {isOwner && (
-                  <Button variant="outline" size="sm" onClick={() => setShowThemeDialog(true)}>
+                  <Button variant="outline" size="sm" onClick={() => setShowThemeDialog(true)} className="border-primary/30 hover:border-primary/60 transition-all duration-300">
                     <PlusIcon className="h-4 w-4 mr-1" />
                     Ajouter un thème
                   </Button>
@@ -617,7 +671,7 @@ const DeckPage = () => {
                 Ce deck ne contient pas encore de thèmes
               </p>
               {isOwner && (
-                <Button onClick={() => setShowThemeDialog(true)}>
+                <Button onClick={() => setShowThemeDialog(true)} className="bg-primary hover:bg-primary/90 text-white">
                   <FolderPlus className="mr-2 h-4 w-4" />
                   Ajouter un thème
                 </Button>

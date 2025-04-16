@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { 
@@ -8,7 +7,9 @@ import {
   ArrowLeft,
   Check,
   X,
-  Info
+  Info,
+  Pencil,
+  Trash2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import FlashCard from "@/components/FlashCard";
 import FlashCardItem from "@/components/FlashCardItem";
 
@@ -31,10 +33,12 @@ import {
   getBase64,
   updateFlashcard,
   deleteFlashcard,
+  deleteTheme,
   Flashcard,
   Theme,
   Deck
 } from "@/lib/localStorage";
+import { applyAI } from "@/lib/aiHelper";
 
 const ThemePage = () => {
   const { deckId, themeId } = useParams<{ deckId: string; themeId: string }>();
@@ -50,7 +54,6 @@ const ThemePage = () => {
   const [showFrontAdditionalInfo, setShowFrontAdditionalInfo] = useState(false);
   const [showBackAdditionalInfo, setShowBackAdditionalInfo] = useState(false);
 
-  // New flashcard form
   const [newCard, setNewCard] = useState({
     front: {
       text: "",
@@ -95,7 +98,6 @@ const ThemePage = () => {
     setTheme(themeData);
     setIsOwner(deckData.authorId === user?.id);
     
-    // Load flashcards
     const themeCards = getFlashcardsByTheme(themeId);
     setFlashcards(themeCards);
     
@@ -243,7 +245,6 @@ const ThemePage = () => {
       setFlashcards([...flashcards, card]);
       setShowCardDialog(false);
       
-      // Reset form
       setNewCard({
         front: {
           text: "",
@@ -270,6 +271,34 @@ const ThemePage = () => {
       toast({
         title: "Erreur",
         description: "Impossible de créer la flashcard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTheme = () => {
+    if (!themeId || !deckId) return;
+    
+    try {
+      const success = deleteTheme(themeId);
+      if (success) {
+        toast({
+          title: "Thème supprimé",
+          description: "Le thème a été supprimé avec succès",
+        });
+        navigate(`/deck/${deckId}`);
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer le thème",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting theme:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression",
         variant: "destructive",
       });
     }
@@ -342,6 +371,37 @@ const ThemePage = () => {
                 {theme.description}
               </p>
             </div>
+
+            {isOwner && (
+              <div className="flex space-x-2">
+                <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
+                  <Link to={`/deck/${deckId}/theme/${themeId}/edit`}>
+                    <Pencil className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-100/20">
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action ne peut pas être annulée. Cela supprimera définitivement ce thème et toutes ses cartes associées seront déplacées dans le deck principal.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteTheme} className="bg-red-500 hover:bg-red-600">
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2">
@@ -401,7 +461,7 @@ const ThemePage = () => {
               Ce thème ne contient pas encore de flashcards
             </p>
             {isOwner && (
-              <Button onClick={() => setShowCardDialog(true)}>
+              <Button onClick={() => setShowCardDialog(true)} className="bg-primary hover:bg-primary/90 text-white">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Ajouter une carte
               </Button>
@@ -410,7 +470,6 @@ const ThemePage = () => {
         )}
       </div>
       
-      {/* Add Card Dialog */}
       <Dialog open={showCardDialog} onOpenChange={setShowCardDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -421,7 +480,6 @@ const ThemePage = () => {
           </DialogHeader>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            {/* Front of the card */}
             <div className="space-y-4 border p-4 rounded-lg">
               <h3 className="font-medium">Recto de la carte</h3>
               
@@ -531,7 +589,6 @@ const ThemePage = () => {
               )}
             </div>
             
-            {/* Back of the card */}
             <div className="space-y-4 border p-4 rounded-lg">
               <h3 className="font-medium">Verso de la carte</h3>
               
