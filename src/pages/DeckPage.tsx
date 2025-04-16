@@ -102,12 +102,21 @@ const DeckPage = () => {
     const currentUser = getUser();
     setUser(currentUser);
     
-    const ownerStatus = currentUser && deckData.authorId === currentUser.id;
+    let ownerStatus = false;
+    
+    if (deckData.authorId === "anonymous") {
+      ownerStatus = true;
+    } 
+    else if (currentUser && deckData.authorId === currentUser.id) {
+      ownerStatus = true;
+    }
+    
     console.log("Owner status check:", {
       deckAuthorId: deckData.authorId,
       userId: currentUser?.id,
       isOwner: ownerStatus
     });
+    
     setIsOwner(ownerStatus);
     
     const deckThemes = getThemesByDeck(id);

@@ -13,7 +13,7 @@ export interface DeckCardProps {
   tags: string[];
   author: string;
   isPublic?: boolean;
-  authorId?: string;
+  authorId: string;
   themeCount?: number;
 }
 
@@ -26,6 +26,7 @@ const DeckCard = ({
   tags,
   author,
   isPublic = true,
+  authorId,
   themeCount = 0,
 }: DeckCardProps) => {
   return (
