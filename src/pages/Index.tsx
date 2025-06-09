@@ -107,13 +107,13 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500/10 to-purple-500/10 text-foreground">
       <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 lg:py-16 flex flex-col items-center justify-center text-center">
-        {/* Hero Section with Horizontal Title */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 flex-wrap">
-          <span className="text-3xl sm:text-4xl lg:text-5xl">🎭</span>
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent leading-tight whitespace-nowrap">
+        {/* Hero Section with Horizontal Title - Fixed to be truly horizontal */}
+        <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 mb-4 sm:mb-6">
+          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl flex-shrink-0">🎭</span>
+          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent leading-tight flex-shrink-0">
             CDS FLASHCARD-BASE
           </h1>
-          <span className="text-3xl sm:text-4xl lg:text-5xl">🎭</span>
+          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl flex-shrink-0">🎭</span>
         </div>
         
         <p className="text-base sm:text-lg lg:text-xl mb-8 sm:mb-12 max-w-xs sm:max-w-lg lg:max-w-2xl px-2 sm:px-0 leading-relaxed">
