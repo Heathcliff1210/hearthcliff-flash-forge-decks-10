@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, FileDown, FileUp, Save, UserCog, Shield, Database, Clock, BarChart } from "lucide-react";
+import { User, FileDown, FileUp, Save, UserCog, Shield, Database, Clock, BarChart, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,6 +35,7 @@ import {
   importSessionFromFile,
   createNewSession
 } from "@/lib/sessionManager";
+import SQLiteManager from "@/lib/sqliteManager";
 
 const ProfilePage = () => {
   const { toast } = useToast();
@@ -47,10 +47,11 @@ const ProfilePage = () => {
   const [sessionKey, setSessionKey] = useState<string | null>(null);
   const [decks, setDecks] = useState<Deck[]>([]);
   const [stats, setStats] = useState<any>(null);
-  const [exportedData, setExportedData] = useState<string>("");
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [importData, setImportData] = useState("");
+  const [showDeckExportDialog, setShowDeckExportDialog] = useState(false);
+  const [showDeckImportDialog, setShowDeckImportDialog] = useState(false);
+  const [selectedDeckForExport, setSelectedDeckForExport] = useState<string>("");
 
   useEffect(() => {
     const initializeProfile = async () => {
@@ -222,6 +223,87 @@ const ProfilePage = () => {
     }
   };
 
+  const handleExportDeck = async () => {
+    if (!selectedDeckForExport) {
+      toast({
+        title: "Aucun deck sélectionné",
+        description: "Veuillez sélectionner un deck à exporter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const sqliteManager = SQLiteManager.getInstance();
+      const blob = await sqliteManager.exportDeck(selectedDeckForExport);
+      
+      if (blob) {
+        const deck = decks.find(d => d.id === selectedDeckForExport);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `deck_${deck?.title || 'export'}_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Export réussi",
+          description: "Le deck a été exporté avec succès",
+        });
+        setShowDeckExportDialog(false);
+        setSelectedDeckForExport("");
+      }
+    } catch (error) {
+      console.error("Error exporting deck:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'exporter le deck",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeckFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImportDeck(file);
+    }
+  };
+
+  const handleImportDeck = async (file: File) => {
+    try {
+      const sqliteManager = SQLiteManager.getInstance();
+      const success = await sqliteManager.importDeck(file);
+      
+      if (success) {
+        toast({
+          title: "Import réussi",
+          description: "Le deck a été importé avec succès",
+        });
+        
+        // Recharger les decks
+        const userDecks = getDecks();
+        setDecks(userDecks);
+        setShowDeckImportDialog(false);
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Fichier de deck invalide ou incompatible",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error importing deck:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'importer le deck",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
       <div className="max-w-6xl mx-auto">
@@ -233,7 +315,11 @@ const ProfilePage = () => {
                 <div className="relative mb-3 sm:mb-4">
                   <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-primary">
                     {userAvatar ? (
-                      <AvatarImage src={userAvatar} alt={userName} />
+                      <AvatarImage 
+                        src={userAvatar} 
+                        alt={userName}
+                        className="object-cover w-full h-full"
+                      />
                     ) : (
                       <AvatarFallback className="text-xl sm:text-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
                         {userName.substring(0, 2).toUpperCase() || "U"}
@@ -254,8 +340,10 @@ const ProfilePage = () => {
                     />
                   </label>
                 </div>
-                <CardTitle className="text-lg sm:text-xl text-center break-words">{userName}</CardTitle>
-                <CardDescription className="text-center text-sm sm:text-base break-words">{userEmail}</CardDescription>
+                <div className="text-center w-full">
+                  <CardTitle className="text-lg sm:text-xl text-center break-words mb-1">{userName}</CardTitle>
+                  <CardDescription className="text-center text-sm sm:text-base break-words">{userEmail}</CardDescription>
+                </div>
                 {userBio && (
                   <p className="text-xs sm:text-sm text-muted-foreground mt-2 text-center leading-relaxed px-2">{userBio}</p>
                 )}
@@ -315,6 +403,75 @@ const ProfilePage = () => {
                     <FileUp className="h-4 w-4 mr-2" />
                     Importer une base de données
                   </Button>
+                </div>
+
+                <div className="w-full pt-2 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground mb-2 text-center">Import/Export de decks individuels</p>
+                  
+                  <Dialog open={showDeckExportDialog} onOpenChange={setShowDeckExportDialog}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start text-sm mb-2"
+                        disabled={decks.length === 0}
+                      >
+                        <Package className="h-4 w-4 mr-2" />
+                        Exporter un deck
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Exporter un deck</DialogTitle>
+                        <DialogDescription>
+                          Sélectionnez le deck que vous souhaitez exporter
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="deck-select">Deck à exporter</Label>
+                          <select
+                            id="deck-select"
+                            value={selectedDeckForExport}
+                            onChange={(e) => setSelectedDeckForExport(e.target.value)}
+                            className="w-full p-2 border rounded-md"
+                          >
+                            <option value="">Sélectionner un deck</option>
+                            {decks.map((deck) => (
+                              <option key={deck.id} value={deck.id}>
+                                {deck.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowDeckExportDialog(false)}>
+                          Annuler
+                        </Button>
+                        <Button onClick={handleExportDeck}>
+                          Exporter
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <div className="w-full">
+                    <input
+                      type="file"
+                      accept=".zip"
+                      onChange={handleDeckFileImport}
+                      style={{ display: 'none' }}
+                      id="import-deck-file"
+                    />
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-sm"
+                      onClick={() => document.getElementById('import-deck-file')?.click()}
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Importer un deck
+                    </Button>
+                  </div>
                 </div>
               </CardFooter>
             </Card>

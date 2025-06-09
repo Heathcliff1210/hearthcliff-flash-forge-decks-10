@@ -719,6 +719,303 @@ class SQLiteManager {
     return true;
   }
 
+  // Export specific deck as compressed file
+  async exportDeck(deckId: string): Promise<Blob> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    // Get deck information
+    const deck = this.getDeck(deckId);
+    if (!deck) throw new Error('Deck not found');
+
+    // Get all themes for this deck
+    const themes = this.getThemesByDeck(deckId);
+
+    // Get all flashcards for this deck
+    const flashcards = this.getFlashcardsByDeck(deckId);
+
+    const zip = new JSZip();
+    
+    // Create deck data structure
+    const deckData = {
+      deck: deck,
+      themes: themes,
+      flashcards: flashcards,
+      exportInfo: {
+        exportDate: new Date().toISOString(),
+        version: '1.0.0',
+        type: 'deck_export',
+        originalDeckId: deckId
+      }
+    };
+
+    // Add deck data as JSON
+    zip.file('deck_data.json', JSON.stringify(deckData, null, 2));
+    
+    // Create a minimal SQLite database with just this deck's data
+    const exportDb = new this.sql.Database();
+    this.createSchema(exportDb);
+
+    // Insert deck
+    exportDb.run(
+      `INSERT INTO decks (id, title, description, cover_image, author_id, is_public, tags, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        deck.id,
+        deck.title,
+        deck.description,
+        deck.coverImage || '',
+        deck.authorId,
+        deck.isPublic ? 1 : 0,
+        JSON.stringify(deck.tags),
+        deck.createdAt,
+        deck.updatedAt
+      ]
+    );
+
+    // Insert themes
+    themes.forEach(theme => {
+      exportDb.run(
+        `INSERT INTO themes (id, deck_id, title, description, cover_image, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          theme.id,
+          theme.deckId,
+          theme.title,
+          theme.description,
+          theme.coverImage || '',
+          theme.createdAt,
+          theme.updatedAt
+        ]
+      );
+    });
+
+    // Insert flashcards
+    flashcards.forEach(card => {
+      exportDb.run(
+        `INSERT INTO flashcards (
+          id, deck_id, theme_id, front_text, front_image, front_audio, front_additional_info,
+          back_text, back_image, back_audio, back_additional_info, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          card.id,
+          card.deckId,
+          card.themeId || null,
+          card.front.text,
+          card.front.image || null,
+          card.front.audio || null,
+          card.front.additionalInfo || null,
+          card.back.text,
+          card.back.image || null,
+          card.back.audio || null,
+          card.back.additionalInfo || null,
+          card.createdAt,
+          card.updatedAt
+        ]
+      );
+    });
+
+    // Export SQLite database
+    const dbData = exportDb.export();
+    zip.file('deck.db', dbData);
+
+    return await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  }
+
+  // Import deck from compressed file
+  async importDeck(file: File): Promise<boolean> {
+    try {
+      if (!this.db) throw new Error('Database not initialized');
+
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(file);
+      
+      // Try to load from SQLite database first
+      const dbFile = zipContent.file('deck.db');
+      if (dbFile) {
+        const dbData = await dbFile.async('uint8array');
+        const importDb = new this.sql.Database(dbData);
+        
+        // Import deck
+        const deckStmt = importDb.prepare(`SELECT * FROM decks LIMIT 1`);
+        const deckResult = deckStmt.getAsObject();
+        deckStmt.free();
+
+        if (deckResult.id) {
+          // Generate new IDs for imported deck to avoid conflicts
+          const newDeckId = `deck_${Date.now()}`;
+          const now = new Date().toISOString();
+          
+          // Create ID mapping for themes and flashcards
+          const themeIdMapping = new Map();
+          
+          // Import deck with new ID
+          this.db.run(
+            `INSERT INTO decks (id, title, description, cover_image, author_id, is_public, tags, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              newDeckId,
+              `${deckResult.title} (Importé)`,
+              deckResult.description,
+              deckResult.cover_image,
+              this.currentUserId, // Change owner to current user
+              0, // Make private by default
+              deckResult.tags,
+              now,
+              now
+            ]
+          );
+
+          // Import themes
+          const themeStmt = importDb.prepare(`SELECT * FROM themes`);
+          while (themeStmt.step()) {
+            const theme = themeStmt.getAsObject();
+            const newThemeId = `theme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            themeIdMapping.set(theme.id, newThemeId);
+            
+            this.db.run(
+              `INSERT INTO themes (id, deck_id, title, description, cover_image, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [
+                newThemeId,
+                newDeckId,
+                theme.title,
+                theme.description,
+                theme.cover_image,
+                now,
+                now
+              ]
+            );
+          }
+          themeStmt.free();
+
+          // Import flashcards
+          const cardStmt = importDb.prepare(`SELECT * FROM flashcards`);
+          while (cardStmt.step()) {
+            const card = cardStmt.getAsObject();
+            const newCardId = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const newThemeId = card.theme_id ? themeIdMapping.get(card.theme_id) || null : null;
+            
+            this.db.run(
+              `INSERT INTO flashcards (
+                id, deck_id, theme_id, front_text, front_image, front_audio, front_additional_info,
+                back_text, back_image, back_audio, back_additional_info, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                newCardId,
+                newDeckId,
+                newThemeId,
+                card.front_text,
+                card.front_image,
+                card.front_audio,
+                card.front_additional_info,
+                card.back_text,
+                card.back_image,
+                card.back_audio,
+                card.back_additional_info,
+                now,
+                now
+              ]
+            );
+          }
+          cardStmt.free();
+
+          await this.saveDatabaseToIndexedDB(this.currentUserId!);
+          return true;
+        }
+      }
+
+      // Fallback: try to load from JSON
+      const jsonFile = zipContent.file('deck_data.json');
+      if (jsonFile) {
+        const jsonContent = await jsonFile.async('text');
+        const deckData = JSON.parse(jsonContent);
+        
+        if (deckData.deck && deckData.exportInfo?.type === 'deck_export') {
+          const newDeckId = `deck_${Date.now()}`;
+          const now = new Date().toISOString();
+          const themeIdMapping = new Map();
+
+          // Import deck
+          this.db.run(
+            `INSERT INTO decks (id, title, description, cover_image, author_id, is_public, tags, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              newDeckId,
+              `${deckData.deck.title} (Importé)`,
+              deckData.deck.description,
+              deckData.deck.coverImage || '',
+              this.currentUserId,
+              0,
+              JSON.stringify(deckData.deck.tags),
+              now,
+              now
+            ]
+          );
+
+          // Import themes
+          if (deckData.themes) {
+            deckData.themes.forEach((theme: any) => {
+              const newThemeId = `theme_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              themeIdMapping.set(theme.id, newThemeId);
+              
+              this.db!.run(
+                `INSERT INTO themes (id, deck_id, title, description, cover_image, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  newThemeId,
+                  newDeckId,
+                  theme.title,
+                  theme.description,
+                  theme.coverImage || '',
+                  now,
+                  now
+                ]
+              );
+            });
+          }
+
+          // Import flashcards
+          if (deckData.flashcards) {
+            deckData.flashcards.forEach((card: any) => {
+              const newCardId = `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              const newThemeId = card.themeId ? themeIdMapping.get(card.themeId) || null : null;
+              
+              this.db!.run(
+                `INSERT INTO flashcards (
+                  id, deck_id, theme_id, front_text, front_image, front_audio, front_additional_info,
+                  back_text, back_image, back_audio, back_additional_info, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  newCardId,
+                  newDeckId,
+                  newThemeId,
+                  card.front.text,
+                  card.front.image || null,
+                  card.front.audio || null,
+                  card.front.additionalInfo || null,
+                  card.back.text,
+                  card.back.image || null,
+                  card.back.audio || null,
+                  card.back.additionalInfo || null,
+                  now,
+                  now
+                ]
+              );
+            });
+          }
+
+          await this.saveDatabaseToIndexedDB(this.currentUserId!);
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error importing deck:', error);
+      return false;
+    }
+  }
+
   // Export database as compressed file
   async exportDatabase(): Promise<Blob> {
     if (!this.db) throw new Error('Database not initialized');
