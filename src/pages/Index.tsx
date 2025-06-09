@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Key, Copy, Plus, BookOpen, Check, Download, Upload, Info, Heart } from 'lucide-react';
@@ -52,13 +51,22 @@ const Index = () => {
     });
   };
   
-  const handleExportData = () => {
-    const data = exportSessionData();
-    setExportData(data);
-    setShowExportDialog(true);
+  const handleExportData = async () => {
+    try {
+      const data = await exportSessionData();
+      setExportData(data);
+      setShowExportDialog(true);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'exporter les données.",
+        variant: "destructive",
+      });
+    }
   };
   
-  const handleImportData = () => {
+  const handleImportData = async () => {
     if (!importData.trim()) {
       toast({
         title: "Erreur",
@@ -68,20 +76,29 @@ const Index = () => {
       return;
     }
     
-    const success = importSessionData(importData);
-    
-    if (success) {
-      toast({
-        title: "Données importées",
-        description: "Vos données ont été importées avec succès.",
-      });
-      setSessionKey(getSessionKey() || '');
-      setShowImportDialog(false);
-      setImportData('');
-    } else {
+    try {
+      const success = await importSessionData(importData);
+      
+      if (success) {
+        toast({
+          title: "Données importées",
+          description: "Vos données ont été importées avec succès.",
+        });
+        setSessionKey(getSessionKey() || '');
+        setShowImportDialog(false);
+        setImportData('');
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Les données importées sont invalides.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error importing data:', error);
       toast({
         title: "Erreur",
-        description: "Les données importées sont invalides.",
+        description: "Erreur lors de l'import des données.",
         variant: "destructive",
       });
     }

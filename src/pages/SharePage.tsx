@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +55,7 @@ const SharePage = () => {
     }
   };
   
-  const generateExportData = () => {
+  const generateExportData = async () => {
     const sessionKey = getSessionKey();
     if (!sessionKey) {
       toast({
@@ -68,7 +67,7 @@ const SharePage = () => {
     }
     
     try {
-      const data = exportSessionData();
+      const data = await exportSessionData();
       if (!data) {
         throw new Error("Aucune donnée à exporter");
       }

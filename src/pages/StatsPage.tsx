@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,38 +44,42 @@ const StatsPage = () => {
   const [subjectDistributionData, setSubjectDistributionData] = useState<Array<{ name: string; value: number }>>([]);
 
   useEffect(() => {
-    // Load real data from localStorage
-    const sessionKey = getSessionKey();
-    if (!sessionKey) return;
+    const loadStats = async () => {
+      // Load real data from localStorage
+      const sessionKey = getSessionKey();
+      if (!sessionKey) return;
 
-    const flashcards = getFlashcards();
-    const decks = getDecks();
-    const themes = getThemes();
-    const stats = getSessionStats();
+      const flashcards = getFlashcards();
+      const decks = getDecks();
+      const themes = getThemes();
+      const stats = await getSessionStats();
 
-    // Update the session statistics for any users who don't have stats yet
-    if (stats && !stats.lastUpdate) {
-      updateSessionStats({
-        lastUpdate: new Date().toISOString()
+      // Update the session statistics for any users who don't have stats yet
+      if (stats && !stats.lastUpdate) {
+        updateSessionStats({
+          lastUpdate: new Date().toISOString()
+        });
+      }
+
+      // Use real stats where available, or create reasonable estimates
+      setStudyStats({
+        totalCards: flashcards.length,
+        totalDecks: decks.length,
+        totalThemes: themes.length,
+        studyDays: stats?.studyDays?.length || Math.min(flashcards.length / 3, 30),
+        averageScore: stats?.averageScore || Math.round(70 + Math.random() * 20), 
+        totalStudyTime: stats?.totalStudyTime || Math.round((flashcards.length * 2) / 60),
+        streakDays: stats?.streakDays || Math.min(Math.round(flashcards.length / 4), 14),
+        cardsPerDay: stats?.cardsReviewed
+          ? Math.round(stats.cardsReviewed / Math.max(stats.studyDays?.length || 1, 1))
+          : Math.max(Math.round(flashcards.length / Math.max(stats?.studyDays?.length || 1, 1)), 1),
       });
-    }
 
-    // Use real stats where available, or create reasonable estimates
-    setStudyStats({
-      totalCards: flashcards.length,
-      totalDecks: decks.length,
-      totalThemes: themes.length,
-      studyDays: stats?.studyDays?.length || Math.min(flashcards.length / 3, 30),
-      averageScore: stats?.averageScore || Math.round(70 + Math.random() * 20), 
-      totalStudyTime: stats?.totalStudyTime || Math.round((flashcards.length * 2) / 60),
-      streakDays: stats?.streakDays || Math.min(Math.round(flashcards.length / 4), 14),
-      cardsPerDay: stats?.cardsReviewed
-        ? Math.round(stats.cardsReviewed / Math.max(stats.studyDays?.length || 1, 1))
-        : Math.max(Math.round(flashcards.length / Math.max(studyStats.studyDays, 1)), 1),
-    });
+      // Generate realistic activity data based on real stats or reasonable estimates
+      generateChartData(stats, decks, themes);
+    };
 
-    // Generate realistic activity data based on real stats or reasonable estimates
-    generateChartData(stats, decks, themes);
+    loadStats();
   }, [periodFilter]);
 
   // Generate chart data based on real stats or reasonable estimates
