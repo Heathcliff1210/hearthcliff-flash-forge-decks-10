@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, FileDown, FileUp, Save, UserCog, Shield, Database, Clock, BarChart } from "lucide-react";
@@ -30,10 +29,11 @@ import {
   getSessionKey, 
   getSessionStats, 
   hasSession, 
-  saveSessionKey, 
   generateSessionKey,
-  exportSessionData,
-  importSessionData
+  saveSessionKey,
+  exportSessionToFile,
+  importSessionFromFile,
+  createNewSession
 } from "@/lib/sessionManager";
 
 const ProfilePage = () => {
@@ -52,32 +52,37 @@ const ProfilePage = () => {
   const [importData, setImportData] = useState("");
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté
-    if (!hasSession()) {
-      navigate("/login");
-      return;
-    }
+    const initializeProfile = async () => {
+      // Vérifier si l'utilisateur est connecté
+      const sessionExists = await hasSession();
+      if (!sessionExists) {
+        navigate("/login");
+        return;
+      }
 
-    // Charger les données utilisateur
-    const user = getUser();
-    if (user) {
-      setUserName(user.name || "");
-      setUserEmail(user.email || "");
-      setUserBio(user.bio || "");
-      setUserAvatar(user.avatar);
-    }
+      // Charger les données utilisateur
+      const user = getUser();
+      if (user) {
+        setUserName(user.name || "");
+        setUserEmail(user.email || "");
+        setUserBio(user.bio || "");
+        setUserAvatar(user.avatar);
+      }
 
-    // Charger la clé de session
-    const key = getSessionKey();
-    setSessionKey(key);
+      // Charger la clé de session
+      const key = getSessionKey();
+      setSessionKey(key);
 
-    // Charger les decks
-    const userDecks = getDecks();
-    setDecks(userDecks);
+      // Charger les decks
+      const userDecks = getDecks();
+      setDecks(userDecks);
 
-    // Charger les statistiques
-    const userStats = getSessionStats();
-    setStats(userStats);
+      // Charger les statistiques
+      const userStats = await getSessionStats();
+      setStats(userStats);
+    };
+
+    initializeProfile();
   }, [navigate]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,22 +145,35 @@ const ProfilePage = () => {
     }
   };
 
-  const generateNewSessionKey = () => {
-    const newKey = generateSessionKey();
-    saveSessionKey(newKey);
+  const generateNewSessionKey = async () => {
+    const newKey = await createNewSession();
     setSessionKey(newKey);
     
     toast({
-      title: "Nouvelle clé générée",
-      description: "Une nouvelle clé de session a été créée avec succès",
+      title: "Nouvelle session créée",
+      description: "Une nouvelle session a été créée avec succès",
     });
   };
 
-  const handleExportData = () => {
+  const handleExportData = async () => {
     try {
-      const data = exportSessionData();
-      setExportedData(data);
-      setShowExportDialog(true);
+      const blob = await exportSessionToFile();
+      if (blob) {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `flashcard_backup_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Export réussi",
+          description: "Votre sauvegarde a été téléchargée",
+        });
+      }
     } catch (error) {
       console.error("Error exporting data:", error);
       toast({
@@ -166,40 +184,19 @@ const ProfilePage = () => {
     }
   };
 
-  const handleDownloadExport = () => {
-    try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(exportedData);
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "flashcard_data_export.json");
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-    } catch (error) {
-      console.error("Error downloading data:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de télécharger les données",
-        variant: "destructive",
-      });
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImportData(file);
     }
   };
 
-  const handleImportData = () => {
+  const handleImportData = async (file: File) => {
     try {
-      if (!importData.trim()) {
-        toast({
-          title: "Données requises",
-          description: "Veuillez entrer les données JSON à importer",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const success = importSessionData(importData);
+      const success = await importSessionFromFile(file);
       if (success) {
         toast({
-          title: "Importation réussie",
+          title: "Import réussi",
           description: "Les données ont été importées avec succès. L'application va se recharger.",
         });
         
@@ -210,7 +207,7 @@ const ProfilePage = () => {
       } else {
         toast({
           title: "Erreur",
-          description: "Format de données invalide ou incompatible",
+          description: "Fichier invalide ou incompatible",
           variant: "destructive",
         });
       }
@@ -298,17 +295,26 @@ const ProfilePage = () => {
                   onClick={handleExportData}
                 >
                   <FileDown className="h-4 w-4 mr-2" />
-                  Exporter mes données
+                  Exporter ma base de données
                 </Button>
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => setShowImportDialog(true)}
-                >
-                  <FileUp className="h-4 w-4 mr-2" />
-                  Importer des données
-                </Button>
+                <div className="w-full">
+                  <input
+                    type="file"
+                    accept=".zip"
+                    onChange={handleFileImport}
+                    style={{ display: 'none' }}
+                    id="import-file"
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => document.getElementById('import-file')?.click()}
+                  >
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Importer une base de données
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           </div>
@@ -404,65 +410,6 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
-      
-      {/* Dialog pour exporter les données */}
-      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Exporter mes données</DialogTitle>
-            <DialogDescription>
-              Voici vos données au format JSON. Vous pouvez les copier ou les télécharger pour les sauvegarder.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="bg-muted p-3 rounded-md max-h-[300px] overflow-auto">
-            <pre className="text-xs whitespace-pre-wrap break-all">
-              {exportedData}
-            </pre>
-          </div>
-          <DialogFooter className="flex sm:justify-between">
-            <Button variant="outline" onClick={() => setShowExportDialog(false)}>
-              Fermer
-            </Button>
-            <Button onClick={handleDownloadExport}>
-              <FileDown className="h-4 w-4 mr-2" />
-              Télécharger
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Dialog pour importer les données */}
-      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Importer des données</DialogTitle>
-            <DialogDescription>
-              Collez le contenu JSON d'une sauvegarde précédente pour restaurer vos données.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              value={importData}
-              onChange={(e) => setImportData(e.target.value)}
-              placeholder='{"sessionKey":"ABCD1234", ...}'
-              rows={10}
-              className="font-mono text-xs"
-            />
-            <p className="text-sm text-destructive font-medium">
-              Attention : Cette action remplacera toutes vos données actuelles !
-            </p>
-          </div>
-          <DialogFooter className="flex sm:justify-between">
-            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
-              Annuler
-            </Button>
-            <Button variant="destructive" onClick={handleImportData}>
-              <FileUp className="h-4 w-4 mr-2" />
-              Importer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
