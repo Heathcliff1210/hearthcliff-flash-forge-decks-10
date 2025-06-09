@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,25 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, UserPlus, Key } from "lucide-react";
-import { hasSession, loadSession, createNewSession } from "@/lib/sessionManager";
+import { loadSession, createNewSession } from "@/lib/sessionManager";
 
 const LoginPage = () => {
   const [sessionKey, setSessionKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Redirect if already logged in
-    const checkSession = async () => {
-      const loggedIn = await hasSession();
-      if (loggedIn) {
-        navigate("/home");
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
 
   const handleCreateAccount = async () => {
     setIsLoading(true);
