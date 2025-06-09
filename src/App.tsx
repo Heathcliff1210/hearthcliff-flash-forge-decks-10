@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { generateSampleData } from "./lib/localStorage";
 import { hasSession } from "./lib/sessionManager";
 
@@ -34,7 +34,28 @@ const queryClient = new QueryClient();
 
 // Protected route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  if (!hasSession()) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const authenticated = await hasSession();
+      setIsAuthenticated(authenticated);
+    };
+    
+    checkAuth();
+  }, []);
+
+  // Loading state
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  // Not authenticated - redirect to login
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   
