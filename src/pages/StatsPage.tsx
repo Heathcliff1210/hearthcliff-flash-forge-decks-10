@@ -54,8 +54,8 @@ const StatsPage = () => {
       const themes = getThemes();
       const stats = await getSessionStats();
 
-      // Update the session statistics for any users who don't have stats yet
-      if (stats && !stats.lastUpdate) {
+      // Update the session statistics for any users who don't have complete stats yet
+      if (stats) {
         updateSessionStats({
           lastUpdate: new Date().toISOString()
         });
