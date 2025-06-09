@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Volume2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,16 +82,20 @@ const FlashCard = ({
         isFlipped ? "flipped" : "",
         className
       )}
-      style={{ minHeight: "400px", height }}
+      style={{ 
+        minHeight: "280px", 
+        height,
+        maxHeight: "500px"
+      }}
       onClick={handleFlip}
     >
       <div className="flashcard-inner w-full h-full relative shadow-lg">
         <div 
           ref={frontRef}
-          className="flashcard-front bg-gradient-to-br from-indigo-500/20 to-purple-600/30 dark:from-indigo-900/50 dark:to-purple-800/40 backdrop-blur-sm rounded-xl p-6 flex flex-col items-center justify-center gap-4 border border-indigo-200/60 dark:border-indigo-700/60 shadow-md"
+          className="flashcard-front bg-gradient-to-br from-indigo-500/20 to-purple-600/30 dark:from-indigo-900/50 dark:to-purple-800/40 backdrop-blur-sm rounded-xl p-3 sm:p-4 md:p-6 flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4 border border-indigo-200/60 dark:border-indigo-700/60 shadow-md"
         >
           {front.image && (
-            <div className="w-full aspect-[4/3] overflow-hidden rounded-lg mb-4 border border-indigo-200/60 dark:border-indigo-700/60 shadow-md hover:shadow-lg transition-all duration-300">
+            <div className="w-full aspect-[4/3] max-h-32 sm:max-h-40 md:max-h-48 overflow-hidden rounded-lg mb-2 sm:mb-3 md:mb-4 border border-indigo-200/60 dark:border-indigo-700/60 shadow-md hover:shadow-lg transition-all duration-300">
               <img
                 src={front.image}
                 alt="Front side"
@@ -98,19 +103,19 @@ const FlashCard = ({
               />
             </div>
           )}
-          <div className="text-xl font-medium text-center text-primary dark:text-primary-foreground">
+          <div className="text-base sm:text-lg md:text-xl font-medium text-center text-primary dark:text-primary-foreground leading-tight">
             {front.text}
           </div>
           
           {front.additionalInfo && (
-            <div className={`w-full overflow-hidden transition-all duration-300 ${showFrontInfo ? 'max-h-48' : 'max-h-0'}`}>
-              <div className="p-3 mt-2 bg-indigo-100/80 dark:bg-indigo-950/50 rounded-lg text-sm border border-indigo-200 dark:border-indigo-800">
+            <div className={`w-full overflow-hidden transition-all duration-300 ${showFrontInfo ? 'max-h-32 sm:max-h-40 md:max-h-48' : 'max-h-0'}`}>
+              <div className="p-2 sm:p-3 mt-1 sm:mt-2 bg-indigo-100/80 dark:bg-indigo-950/50 rounded-lg text-xs sm:text-sm border border-indigo-200 dark:border-indigo-800">
                 {front.additionalInfo}
               </div>
             </div>
           )}
 
-          <div className="absolute bottom-3 right-3 flex gap-2">
+          <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 flex gap-1 sm:gap-2">
             {front.additionalInfo && (
               <TooltipProvider>
                 <Tooltip>
@@ -120,11 +125,11 @@ const FlashCard = ({
                       variant="outline"
                       size="icon"
                       className={cn(
-                        "h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 border-indigo-200 dark:border-indigo-700",
+                        "h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 border-indigo-200 dark:border-indigo-700",
                         showFrontInfo && "bg-indigo-200 dark:bg-indigo-800"
                       )}
                     >
-                      <Info className="h-4 w-4" />
+                      <Info className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -142,9 +147,9 @@ const FlashCard = ({
                       onClick={(e) => playAudio(front.audio!, e)}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 border-indigo-200 dark:border-indigo-700"
+                      className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 border-indigo-200 dark:border-indigo-700"
                     >
-                      <Volume2 className="h-4 w-4" />
+                      <Volume2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -158,10 +163,10 @@ const FlashCard = ({
         
         <div 
           ref={backRef}
-          className="flashcard-back bg-gradient-to-br from-purple-500/20 to-pink-600/30 dark:from-purple-900/50 dark:to-pink-800/40 backdrop-blur-sm rounded-xl p-6 flex flex-col items-center justify-center gap-4 border border-purple-200/60 dark:border-purple-700/60 shadow-md"
+          className="flashcard-back bg-gradient-to-br from-purple-500/20 to-pink-600/30 dark:from-purple-900/50 dark:to-pink-800/40 backdrop-blur-sm rounded-xl p-3 sm:p-4 md:p-6 flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4 border border-purple-200/60 dark:border-purple-700/60 shadow-md"
         >
           {back.image && (
-            <div className="w-full aspect-[4/3] overflow-hidden rounded-lg mb-4 border border-purple-200/60 dark:border-purple-700/60 shadow-md hover:shadow-lg transition-all duration-300">
+            <div className="w-full aspect-[4/3] max-h-32 sm:max-h-40 md:max-h-48 overflow-hidden rounded-lg mb-2 sm:mb-3 md:mb-4 border border-purple-200/60 dark:border-purple-700/60 shadow-md hover:shadow-lg transition-all duration-300">
               <img
                 src={back.image}
                 alt="Back side"
@@ -169,19 +174,19 @@ const FlashCard = ({
               />
             </div>
           )}
-          <div className="text-xl font-medium text-center text-primary dark:text-primary-foreground">
+          <div className="text-base sm:text-lg md:text-xl font-medium text-center text-primary dark:text-primary-foreground leading-tight">
             {back.text}
           </div>
           
           {back.additionalInfo && (
-            <div className={`w-full overflow-hidden transition-all duration-300 ${showBackInfo ? 'max-h-48' : 'max-h-0'}`}>
-              <div className="p-3 mt-2 bg-pink-100/80 dark:bg-pink-950/50 rounded-lg text-sm border border-pink-200 dark:border-pink-800">
+            <div className={`w-full overflow-hidden transition-all duration-300 ${showBackInfo ? 'max-h-32 sm:max-h-40 md:max-h-48' : 'max-h-0'}`}>
+              <div className="p-2 sm:p-3 mt-1 sm:mt-2 bg-pink-100/80 dark:bg-pink-950/50 rounded-lg text-xs sm:text-sm border border-pink-200 dark:border-pink-800">
                 {back.additionalInfo}
               </div>
             </div>
           )}
 
-          <div className="absolute bottom-3 right-3 flex gap-2">
+          <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 flex gap-1 sm:gap-2">
             {back.additionalInfo && (
               <TooltipProvider>
                 <Tooltip>
@@ -191,11 +196,11 @@ const FlashCard = ({
                       variant="outline"
                       size="icon"
                       className={cn(
-                        "h-8 w-8 rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-800 border-pink-200 dark:border-pink-700",
+                        "h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-800 border-pink-200 dark:border-pink-700",
                         showBackInfo && "bg-pink-200 dark:bg-pink-800"
                       )}
                     >
-                      <Info className="h-4 w-4" />
+                      <Info className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -213,9 +218,9 @@ const FlashCard = ({
                       onClick={(e) => playAudio(back.audio!, e)}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-800 border-pink-200 dark:border-pink-700"
+                      className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-800 border-pink-200 dark:border-pink-700"
                     >
-                      <Volume2 className="h-4 w-4" />
+                      <Volume2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -233,7 +238,8 @@ const FlashCard = ({
         {`
         .flashcard {
           transition: transform 0.3s;
-          min-height: 400px;
+          min-height: 280px;
+          max-height: 500px;
           aspect-ratio: 4/3;
         }
         
@@ -270,6 +276,13 @@ const FlashCard = ({
         
         .flashcard-back {
           transform: rotateY(180deg);
+        }
+        
+        @media (max-width: 640px) {
+          .flashcard {
+            min-height: 280px;
+            max-height: 400px;
+          }
         }
         `}
       </style>
