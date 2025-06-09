@@ -62,170 +62,170 @@ const App = () => {
               {/* Protected routes with Navbar and Footer */}
               <Route path="/home" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <HomePage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/explore" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <ExplorePage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/create" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <CreatePage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/profile" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <ProfilePage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/my-decks" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <MyDecksPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/deck/:id" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <DeckPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/deck/:id/edit" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <EditDeckPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/deck/:deckId/theme/:themeId" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <ThemePage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/deck/:id/study" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <StudyPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/import/:code" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <ImportPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/import" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <ImportPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               {/* New routes */}
               <Route path="/learning-methods" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <LearningMethodsPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/stats" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <StatsPage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
               <Route path="/share" element={
                 <ProtectedRoute>
-                  <>
+                  <div className="min-h-screen flex flex-col">
                     <Navbar />
-                    <main className="flex-1">
+                    <main className="flex-1 w-full">
                       <SharePage />
                     </main>
                     <Footer />
-                  </>
+                  </div>
                 </ProtectedRoute>
               } />
               
