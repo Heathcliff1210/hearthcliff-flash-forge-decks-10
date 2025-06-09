@@ -1,4 +1,3 @@
-
 import SQLiteManager from './sqliteManager';
 
 interface SessionData {
@@ -40,10 +39,13 @@ class NewSessionManager {
   }
 
   async createSession(): Promise<string> {
+    // Clear any legacy localStorage data first
+    this.sqliteManager.clearLegacyStorage();
+    
     const userId = `user_${Date.now()}`;
     const sessionKey = this.generateSessionKey();
     
-    // Create SQLite database for user
+    // Create SQLite database for user - this stores ALL user data including media
     await this.sqliteManager.createUserDatabase(userId);
     
     // Save session data to IndexedDB
@@ -64,7 +66,7 @@ class NewSessionManager {
       }
     });
     
-    // Store current session reference
+    // Store current session reference (only thing in localStorage now)
     localStorage.setItem('currentSessionKey', sessionKey);
     
     return sessionKey;
@@ -72,6 +74,9 @@ class NewSessionManager {
 
   async loadSession(sessionKey: string): Promise<boolean> {
     try {
+      // Clear any legacy localStorage data first
+      this.sqliteManager.clearLegacyStorage();
+      
       const sessionData = await this.getSessionData(sessionKey);
       if (!sessionData) return false;
 
@@ -102,7 +107,11 @@ class NewSessionManager {
   }
 
   async clearSession(): Promise<void> {
+    // Clear session reference
     localStorage.removeItem('currentSessionKey');
+    
+    // Clear any legacy data
+    this.sqliteManager.clearLegacyStorage();
   }
 
   private async saveSessionData(sessionData: SessionData): Promise<void> {
@@ -207,6 +216,9 @@ class NewSessionManager {
 
   async importSessionFromFile(file: File): Promise<boolean> {
     try {
+      // Clear any legacy localStorage data first
+      this.sqliteManager.clearLegacyStorage();
+      
       const success = await this.sqliteManager.importDatabase(file);
       if (success) {
         const userId = this.sqliteManager.getCurrentUserId();

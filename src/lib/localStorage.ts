@@ -19,15 +19,14 @@ export const getBase64 = (file: File): Promise<string> => {
   });
 };
 
-// User functions
+// User functions - all handled by SQLite per user
 export const getUser = () => sqliteManager.getUser();
 export const setUser = (user: any) => {
-  // This is handled during database creation
-  console.warn('setUser is deprecated, user is created automatically');
+  console.warn('setUser is deprecated, user is created automatically per session');
 };
 export const updateUser = (userData: any) => sqliteManager.updateUser(userData);
 
-// Deck functions
+// Deck functions - all stored in per-user SQLite database
 export const getDecks = () => sqliteManager.getDecks();
 export const getDeck = (id: string) => sqliteManager.getDeck(id);
 export const createDeck = (deck: any) => sqliteManager.createDeck(deck);
@@ -42,7 +41,7 @@ export const isUserDeckOwner = (deckId: string) => {
   return isUserOwner(deck.authorId);
 };
 
-// Theme functions
+// Theme functions - all stored in per-user SQLite database
 export const getThemes = () => sqliteManager.getThemes();
 export const getThemesByDeck = (deckId: string) => sqliteManager.getThemesByDeck(deckId);
 export const getTheme = (id: string) => {
@@ -51,17 +50,15 @@ export const getTheme = (id: string) => {
 };
 export const createTheme = (theme: any) => sqliteManager.createTheme(theme);
 export const updateTheme = (id: string, themeData: any) => {
-  // Implementation would be similar to updateDeck
-  console.warn('updateTheme not yet implemented in SQLite');
+  console.warn('updateTheme will be implemented soon in SQLite');
   return null;
 };
 export const deleteTheme = (id: string) => {
-  // Implementation would be similar to deleteDeck
-  console.warn('deleteTheme not yet implemented in SQLite');
+  console.warn('deleteTheme will be implemented soon in SQLite');
   return false;
 };
 
-// Flashcard functions
+// Flashcard functions - all stored in per-user SQLite database including media
 export const getFlashcards = () => sqliteManager.getFlashcards();
 export const getFlashcardsByDeck = (deckId: string) => sqliteManager.getFlashcardsByDeck(deckId);
 export const getFlashcardsByTheme = (themeId: string) => {
@@ -73,16 +70,8 @@ export const getFlashcard = (id: string) => {
   return flashcards.find(card => card.id === id);
 };
 export const createFlashcard = (flashcard: any) => sqliteManager.createFlashcard(flashcard);
-export const updateFlashcard = (id: string, cardData: any) => {
-  // Implementation would be similar to updateDeck
-  console.warn('updateFlashcard not yet implemented in SQLite');
-  return null;
-};
-export const deleteFlashcard = (id: string) => {
-  // Implementation would be similar to deleteDeck
-  console.warn('deleteFlashcard not yet implemented in SQLite');
-  return false;
-};
+export const updateFlashcard = (id: string, cardData: any) => sqliteManager.updateFlashcard(id, cardData);
+export const deleteFlashcard = (id: string) => sqliteManager.deleteFlashcard(id);
 
 // Shared deck functions (will be implemented later)
 export const getSharedDeckCodes = () => [];
@@ -107,4 +96,10 @@ export const initializeDefaultUser = () => {
 // Sample data generator - not needed with SQLite
 export const generateSampleData = () => {
   console.log('Sample data generation not needed with SQLite');
+};
+
+// Clear any legacy localStorage data
+export const clearLegacyData = () => {
+  sqliteManager.clearLegacyStorage();
+  console.log('Legacy localStorage data cleared');
 };

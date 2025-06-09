@@ -1,4 +1,3 @@
-
 import initSqlJs, { Database } from 'sql.js';
 import JSZip from 'jszip';
 
@@ -136,7 +135,7 @@ class SQLiteManager {
       )
     `);
 
-    // Flashcards table
+    // Flashcards table - stores all media as base64 strings
     db.run(`
       CREATE TABLE IF NOT EXISTS flashcards (
         id TEXT PRIMARY KEY,
@@ -157,11 +156,25 @@ class SQLiteManager {
       )
     `);
 
+    // User preferences and settings
+    db.run(`
+      CREATE TABLE IF NOT EXISTS user_settings (
+        id INTEGER PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        theme_preference TEXT DEFAULT 'light',
+        language TEXT DEFAULT 'fr',
+        study_reminders INTEGER DEFAULT 1,
+        settings_json TEXT,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    `);
+
     // Create indexes for better performance
     db.run(`CREATE INDEX IF NOT EXISTS idx_decks_author ON decks (author_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_themes_deck ON themes (deck_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_flashcards_deck ON flashcards (deck_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_flashcards_theme ON flashcards (theme_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_user_settings_user ON user_settings (user_id)`);
   }
 
   async createUserDatabase(userId: string): Promise<void> {
@@ -176,6 +189,12 @@ class SQLiteManager {
     this.db.run(
       `INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)`,
       [userId, "Utilisateur", "utilisateur@example.com", now]
+    );
+
+    // Create default user settings
+    this.db.run(
+      `INSERT INTO user_settings (user_id, settings_json) VALUES (?, ?)`,
+      [userId, JSON.stringify({ initialized: true })]
     );
 
     // Save to IndexedDB
@@ -224,7 +243,7 @@ class SQLiteManager {
           db.createObjectStore('databases', { keyPath: 'userId' });
         }
         if (!db.objectStoreNames.contains('sessions')) {
-          db.createObjectStore('sessions', { keyPath: 'userId' });
+          db.createObjectStore('sessions', { keyPath: 'sessionKey' });
         }
       };
     });
@@ -255,7 +274,7 @@ class SQLiteManager {
           db.createObjectStore('databases', { keyPath: 'userId' });
         }
         if (!db.objectStoreNames.contains('sessions')) {
-          db.createObjectStore('sessions', { keyPath: 'userId' });
+          db.createObjectStore('sessions', { keyPath: 'sessionKey' });
         }
       };
     });
@@ -521,7 +540,7 @@ class SQLiteManager {
     return this.getThemes().find(t => t.id === id)!;
   }
 
-  // Flashcard operations
+  // Flashcard operations - enhanced to handle all media properly
   getFlashcards(): Flashcard[] {
     if (!this.db) return [];
 
@@ -621,6 +640,85 @@ class SQLiteManager {
     return this.getFlashcards().find(c => c.id === id)!;
   }
 
+  updateFlashcard(id: string, cardData: Partial<Flashcard>): Flashcard | null {
+    if (!this.db) return null;
+
+    const updates = [];
+    const values = [];
+
+    if (cardData.front) {
+      if (cardData.front.text !== undefined) {
+        updates.push('front_text = ?');
+        values.push(cardData.front.text);
+      }
+      if (cardData.front.image !== undefined) {
+        updates.push('front_image = ?');
+        values.push(cardData.front.image || null);
+      }
+      if (cardData.front.audio !== undefined) {
+        updates.push('front_audio = ?');
+        values.push(cardData.front.audio || null);
+      }
+      if (cardData.front.additionalInfo !== undefined) {
+        updates.push('front_additional_info = ?');
+        values.push(cardData.front.additionalInfo || null);
+      }
+    }
+
+    if (cardData.back) {
+      if (cardData.back.text !== undefined) {
+        updates.push('back_text = ?');
+        values.push(cardData.back.text);
+      }
+      if (cardData.back.image !== undefined) {
+        updates.push('back_image = ?');
+        values.push(cardData.back.image || null);
+      }
+      if (cardData.back.audio !== undefined) {
+        updates.push('back_audio = ?');
+        values.push(cardData.back.audio || null);
+      }
+      if (cardData.back.additionalInfo !== undefined) {
+        updates.push('back_additional_info = ?');
+        values.push(cardData.back.additionalInfo || null);
+      }
+    }
+
+    if (cardData.themeId !== undefined) {
+      updates.push('theme_id = ?');
+      values.push(cardData.themeId || null);
+    }
+
+    if (updates.length === 0) return this.getFlashcards().find(c => c.id === id) || null;
+
+    updates.push('updated_at = ?');
+    values.push(new Date().toISOString());
+    values.push(id);
+
+    this.db.run(
+      `UPDATE flashcards SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    this.saveDatabaseToIndexedDB(this.currentUserId!);
+    return this.getFlashcards().find(c => c.id === id) || null;
+  }
+
+  deleteFlashcard(id: string): boolean {
+    if (!this.db) return false;
+
+    const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM flashcards WHERE id = ?`);
+    const result = stmt.getAsObject([id]);
+    stmt.free();
+
+    if (!(result.count as number)) return false;
+
+    this.db.run(`DELETE FROM flashcards WHERE id = ?`, [id]);
+    
+    this.saveDatabaseToIndexedDB(this.currentUserId!);
+    return true;
+  }
+
   // Export database as compressed file
   async exportDatabase(): Promise<Blob> {
     if (!this.db) throw new Error('Database not initialized');
@@ -676,6 +774,24 @@ class SQLiteManager {
 
   isUserOwner(authorId: string): boolean {
     return this.currentUserId === authorId;
+  }
+
+  // Clear any localStorage remnants and ensure clean state
+  clearLegacyStorage(): void {
+    // Remove any old localStorage keys that might conflict
+    const keysToRemove = [
+      'flashcard-app-user',
+      'flashcard-app-decks', 
+      'flashcard-app-themes',
+      'flashcard-app-flashcards',
+      'flashcard-app-shared-codes',
+      'flashcard-app-session',
+      'flashcard-app-stats'
+    ];
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
   }
 }
 
