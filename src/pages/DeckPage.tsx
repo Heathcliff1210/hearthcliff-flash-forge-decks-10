@@ -424,10 +424,10 @@ const DeckPage = () => {
   
   if (isLoading) {
     return (
-      <div className="container px-3 sm:px-4 py-6 sm:py-8 flex items-center justify-center h-64">
+      <div className="container px-4 py-8 flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground text-sm sm:text-base">Chargement...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Chargement...</p>
         </div>
       </div>
     );
@@ -435,10 +435,10 @@ const DeckPage = () => {
   
   if (!deck) {
     return (
-      <div className="container px-3 sm:px-4 py-6 sm:py-8">
+      <div className="container px-4 py-8">
         <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4">Deck introuvable</h1>
-          <p className="text-muted-foreground mb-6 text-sm sm:text-base">
+          <h1 className="text-3xl font-bold mb-4">Deck introuvable</h1>
+          <p className="text-muted-foreground mb-6">
             Le deck que vous recherchez n'existe pas ou a été supprimé.
           </p>
           <Button asChild>
@@ -450,29 +450,29 @@ const DeckPage = () => {
   }
   
   return (
-    <div className="container px-3 sm:px-4 py-6 sm:py-8">
-      <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 sm:mb-6">
+    <div className="container px-4 py-8">
+      <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="mr-1 h-4 w-4" />
         Retour
       </Link>
       
-      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
         {deck.coverImage ? (
-          <div className="w-full lg:w-1/3 xl:w-1/4">
-            <div className="relative aspect-video lg:aspect-square rounded-xl overflow-hidden border shadow-lg">
+          <div className="w-full md:w-1/3 lg:w-1/4">
+            <div className="relative aspect-video md:aspect-square rounded-xl overflow-hidden border shadow-lg">
               <img
                 src={deck.coverImage}
                 alt={deck.title}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-              <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4">
+              <div className="absolute bottom-4 left-4">
                 {deck.isPublic ? (
-                  <Badge variant="default" className="bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-300 text-xs sm:text-sm">
+                  <Badge variant="default" className="bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-300">
                     Public
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-slate-500/20 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300 text-xs sm:text-sm">
+                  <Badge variant="secondary" className="bg-slate-500/20 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300">
                     Privé
                   </Badge>
                 )}
@@ -480,16 +480,16 @@ const DeckPage = () => {
             </div>
           </div>
         ) : (
-          <div className="w-full lg:w-1/3 xl:w-1/4">
-            <div className="relative aspect-video lg:aspect-square rounded-xl overflow-hidden border bg-gradient-to-r from-primary/30 to-accent/30 flex items-center justify-center shadow-lg">
-              <BookOpen className="h-12 w-12 sm:h-16 sm:w-16 text-primary/50" />
-              <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4">
+          <div className="w-full md:w-1/3 lg:w-1/4">
+            <div className="relative aspect-video md:aspect-square rounded-xl overflow-hidden border bg-gradient-to-r from-primary/30 to-accent/30 flex items-center justify-center shadow-lg">
+              <BookOpen className="h-16 w-16 text-primary/50" />
+              <div className="absolute bottom-4 left-4">
                 {deck.isPublic ? (
-                  <Badge variant="default" className="bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-300 text-xs sm:text-sm">
+                  <Badge variant="default" className="bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-300">
                     Public
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-slate-500/20 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300 text-xs sm:text-sm">
+                  <Badge variant="secondary" className="bg-slate-500/20 text-slate-700 dark:bg-slate-500/30 dark:text-slate-300">
                     Privé
                   </Badge>
                 )}
@@ -499,27 +499,27 @@ const DeckPage = () => {
         )}
         
         <div className="flex-1">
-          <div className="flex items-start justify-between mb-2">
-            <h1 className="text-2xl sm:text-3xl font-bold pr-2">{deck.title}</h1>
+          <div className="flex items-start justify-between">
+            <h1 className="text-3xl font-bold mb-2">{deck.title}</h1>
             {isOwner && (
-              <div className="flex gap-1 sm:gap-2 flex-shrink-0">
-                <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10 h-8 w-8 sm:h-10 sm:w-10">
+              <div className="flex gap-2">
+                <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
                   <Link to={`/deck/${id}/edit`}>
-                    <Edit className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Edit className="h-5 w-5" />
                   </Link>
                 </Button>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 h-8 w-8 sm:h-10 sm:w-10" onClick={() => setShowDeleteDialog(true)}>
-                  <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 hover:bg-destructive/10" onClick={() => setShowDeleteDialog(true)}>
+                  <Trash2 className="h-5 w-5" />
                 </Button>
               </div>
             )}
           </div>
           
-          <p className="text-muted-foreground mb-4 text-sm sm:text-base">
+          <p className="text-muted-foreground mb-4">
             {deck.description}
           </p>
           
-          <div className="flex flex-wrap gap-1 sm:gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
             {deck.tags.map((tag: string) => (
               <Badge key={tag} variant="secondary" className="text-xs bg-secondary/50">
                 {tag}
@@ -527,77 +527,77 @@ const DeckPage = () => {
             ))}
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
-            <Button asChild className="bg-primary hover:bg-primary/90 text-white shadow-md text-sm sm:text-base">
+          <div className="flex gap-2 mb-6">
+            <Button asChild className="bg-primary hover:bg-primary/90 text-white shadow-md">
               <Link to={`/deck/${id}/study`}>
                 <BookOpen className="mr-2 h-4 w-4" />
                 Étudier
               </Link>
             </Button>
             
-            <Button variant="outline" onClick={generateShareLink} className="border-primary/20 text-primary hover:bg-primary/10 text-sm sm:text-base">
+            <Button variant="outline" onClick={generateShareLink} className="border-primary/20 text-primary hover:bg-primary/10">
               <Share2 className="mr-2 h-4 w-4" />
               Partager
             </Button>
             
             {isOwner && (
               <>
-                <Button variant="outline" onClick={() => setShowThemeDialog(true)} className="border-secondary/50 hover:bg-secondary/20 text-sm sm:text-base">
+                <Button variant="outline" onClick={() => setShowThemeDialog(true)} className="border-secondary/50 hover:bg-secondary/20">
                   <FolderPlus className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Ajouter un </span>thème
+                  Ajouter un thème
                 </Button>
                 
-                <Button variant="outline" onClick={() => setShowCardDialog(true)} className="border-secondary/50 hover:bg-secondary/20 text-sm sm:text-base">
+                <Button variant="outline" onClick={() => setShowCardDialog(true)} className="border-secondary/50 hover:bg-secondary/20">
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Ajouter une </span>carte
+                  Ajouter une carte
                 </Button>
               </>
             )}
           </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+          <div className="flex items-center text-sm text-muted-foreground">
             <div className="flex items-center">
-              <Avatar className="h-5 w-5 sm:h-6 sm:w-6 mr-2">
-                <AvatarFallback className="text-[8px] sm:text-[10px] bg-primary/20 text-primary">
+              <Avatar className="h-6 w-6 mr-2">
+                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
                   {deck.authorId === user?.id ? user?.name.substring(0, 2).toUpperCase() : "AU"}
                 </AvatarFallback>
               </Avatar>
-              <span className="truncate">{deck.authorId === user?.id ? user?.name : "Autre utilisateur"}</span>
+              <span>{deck.authorId === user?.id ? user?.name : "Autre utilisateur"}</span>
             </div>
-            <Separator orientation="vertical" className="hidden sm:block h-4" />
+            <Separator orientation="vertical" className="mx-2 h-4" />
             <div className="flex items-center">
-              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <BarChart3 className="h-4 w-4 mr-1" />
               <span>{flashcards.length} cartes</span>
             </div>
-            <Separator orientation="vertical" className="hidden sm:block h-4" />
+            <Separator orientation="vertical" className="mx-2 h-4" />
             <div className="flex items-center">
-              <Layers className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <Layers className="h-4 w-4 mr-1" />
               <span>{themes.length} thèmes</span>
             </div>
           </div>
         </div>
       </div>
       
-      <Tabs defaultValue="cards" className="mt-6 sm:mt-8">
-        <TabsList className="mb-4 sm:mb-6 bg-secondary/20 w-full sm:w-auto">
-          <TabsTrigger value="cards" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base flex-1 sm:flex-initial">Toutes les cartes</TabsTrigger>
-          <TabsTrigger value="themes" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm sm:text-base flex-1 sm:flex-initial">Thèmes</TabsTrigger>
+      <Tabs defaultValue="cards" className="mt-8">
+        <TabsList className="mb-6 bg-secondary/20">
+          <TabsTrigger value="cards" className="data-[state=active]:bg-primary data-[state=active]:text-white">Toutes les cartes</TabsTrigger>
+          <TabsTrigger value="themes" className="data-[state=active]:bg-primary data-[state=active]:text-white">Thèmes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="cards" className="mt-0">
           {flashcards.length > 0 ? (
             <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 mb-4">
-                <h2 className="text-lg sm:text-xl font-bold">Cartes ({flashcards.length})</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Cartes ({flashcards.length})</h2>
                 {isOwner && (
-                  <Button variant="outline" size="sm" onClick={() => setShowCardDialog(true)} className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" onClick={() => setShowCardDialog(true)}>
                     <PlusIcon className="h-4 w-4 mr-1" />
                     Ajouter une carte
                   </Button>
                 )}
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {flashcards.map((card) => (
                   <FlashCardItem
                     key={card.id}
@@ -609,14 +609,14 @@ const DeckPage = () => {
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 sm:py-12 border rounded-lg bg-secondary/20">
-              <BookOpen className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg sm:text-xl font-medium mb-2">Aucune carte</h3>
-              <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base px-4">
+            <div className="text-center py-12 border rounded-lg bg-secondary/20">
+              <BookOpen className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+              <h3 className="text-xl font-medium mb-2">Aucune carte</h3>
+              <p className="text-muted-foreground mb-6">
                 Ce deck ne contient pas encore de flashcards
               </p>
               {isOwner && (
-                <Button onClick={() => setShowCardDialog(true)} className="mx-4">
+                <Button onClick={() => setShowCardDialog(true)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Ajouter une carte
                 </Button>
@@ -628,17 +628,17 @@ const DeckPage = () => {
         <TabsContent value="themes" className="mt-0">
           {themes.length > 0 ? (
             <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 mb-4">
-                <h2 className="text-lg sm:text-xl font-bold">Thèmes ({themes.length})</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Thèmes ({themes.length})</h2>
                 {isOwner && (
-                  <Button variant="outline" size="sm" onClick={() => setShowThemeDialog(true)} className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" onClick={() => setShowThemeDialog(true)}>
                     <PlusIcon className="h-4 w-4 mr-1" />
                     Ajouter un thème
                   </Button>
                 )}
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {themes.map((theme) => {
                   const themeCards = flashcards.filter(card => card.themeId === theme.id);
                   return (
@@ -658,14 +658,14 @@ const DeckPage = () => {
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 sm:py-12 border rounded-lg bg-secondary/20">
-              <FolderPlus className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg sm:text-xl font-medium mb-2">Aucun thème</h3>
-              <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base px-4">
+            <div className="text-center py-12 border rounded-lg bg-secondary/20">
+              <FolderPlus className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+              <h3 className="text-xl font-medium mb-2">Aucun thème</h3>
+              <p className="text-muted-foreground mb-6">
                 Ce deck ne contient pas encore de thèmes
               </p>
               {isOwner && (
-                <Button onClick={() => setShowThemeDialog(true)} className="mx-4">
+                <Button onClick={() => setShowThemeDialog(true)}>
                   <FolderPlus className="mr-2 h-4 w-4" />
                   Ajouter un thème
                 </Button>
@@ -676,7 +676,7 @@ const DeckPage = () => {
       </Tabs>
       
       <Dialog open={showThemeDialog} onOpenChange={setShowThemeDialog}>
-        <DialogContent className="w-[95vw] max-w-md sm:max-w-lg">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Ajouter un thème</DialogTitle>
             <DialogDescription>
@@ -739,7 +739,7 @@ const DeckPage = () => {
       </Dialog>
       
       <Dialog open={showCardDialog} onOpenChange={setShowCardDialog}>
-        <DialogContent className="w-[95vw] max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-3xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Ajouter une flashcard</DialogTitle>
             <DialogDescription>
@@ -889,7 +889,7 @@ const DeckPage = () => {
       </Dialog>
       
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-md sm:max-w-lg">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Partager le deck</DialogTitle>
             <DialogDescription>
@@ -917,7 +917,7 @@ const DeckPage = () => {
       </Dialog>
       
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="w-[95vw] max-w-md sm:max-w-lg">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Supprimer le deck</DialogTitle>
             <DialogDescription>
