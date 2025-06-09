@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Key, Copy, Plus, BookOpen, Check, Download, Upload, Info, Heart } from 'lucide-react';
@@ -108,15 +107,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500/10 to-purple-500/10 text-foreground">
       <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 lg:py-16 flex flex-col items-center justify-center text-center">
-        {/* Hero Section with Improved Mobile Layout */}
-        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {/* Hero Section with Horizontal Title */}
+        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 flex-wrap">
           <span className="text-3xl sm:text-4xl lg:text-5xl">🎭</span>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-            <span className="block sm:inline">CDS</span>
-            <span className="block sm:hidden"><br /></span>
-            <span className="block sm:inline">FLASHCARD-</span>
-            <span className="block sm:hidden"><br /></span>
-            <span className="block sm:inline">BASE</span>
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent leading-tight whitespace-nowrap">
+            CDS FLASHCARD-BASE
           </h1>
           <span className="text-3xl sm:text-4xl lg:text-5xl">🎭</span>
         </div>

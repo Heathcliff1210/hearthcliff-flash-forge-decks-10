@@ -1,0 +1,223 @@
+
+/* Responsive improvements for deck pages and general layout */
+
+/* Mobile-first responsive design */
+@media (max-width: 640px) {
+  /* Deck page specific adjustments */
+  .deck-header {
+    padding: 1rem 0.75rem;
+  }
+  
+  .deck-title {
+    font-size: 1.5rem;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+  }
+  
+  .deck-description {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  
+  .deck-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  .deck-action-button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .deck-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  .deck-stat-item {
+    font-size: 0.75rem;
+  }
+  
+  /* Card grid adjustments */
+  .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0 0.75rem;
+  }
+  
+  /* Theme tabs adjustments */
+  .theme-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .theme-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .theme-tab {
+    min-width: 120px;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  /* Image containers */
+  .deck-cover-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 0.75rem;
+  }
+  
+  /* Form elements */
+  .form-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Modal adjustments */
+  .modal-content {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Tablet adjustments */
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .deck-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .deck-action-button {
+    flex: 1;
+    min-width: 140px;
+  }
+}
+
+@media (min-width: 1025px) {
+  /* Desktop adjustments */
+  .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .deck-actions {
+    flex-direction: row;
+    gap: 1rem;
+  }
+  
+  .deck-action-button {
+    min-width: 160px;
+  }
+}
+
+/* General responsive utilities */
+.responsive-container {
+  width: 100%;
+  max-width: 100%;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Text scaling for better readability */
+.responsive-text-sm {
+  font-size: 0.75rem;
+}
+
+.responsive-text-base {
+  font-size: 0.875rem;
+}
+
+.responsive-text-lg {
+  font-size: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-text-sm {
+    font-size: 0.875rem;
+  }
+  
+  .responsive-text-base {
+    font-size: 1rem;
+  }
+  
+  .responsive-text-lg {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-text-sm {
+    font-size: 0.875rem;
+  }
+  
+  .responsive-text-base {
+    font-size: 1rem;
+  }
+  
+  .responsive-text-lg {
+    font-size: 1.25rem;
+  }
+}
+
+/* Flexbox utilities for better responsive behavior */
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .flex-responsive {
+    flex-direction: row;
+    gap: 1rem;
+  }
+}
+
+/* Button responsive adjustments */
+.btn-responsive {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .btn-responsive {
+    width: auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .btn-responsive {
+    padding: 0.625rem 1.25rem;
+    font-size: 1rem;
+  }
+}

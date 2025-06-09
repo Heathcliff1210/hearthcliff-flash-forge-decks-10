@@ -1,73 +1,126 @@
-# Welcome to your Lovable project
 
-## Project info
+# CDS Flashcard-Base
 
-**URL**: https://lovable.dev/projects/32abf242-c4c3-4203-af67-138205467eab
+## Description du projet
 
-## How can I edit this code?
+CDS Flashcard-Base est une application web moderne pour créer, gérer et étudier des flashcards interactives. L'application permet aux utilisateurs de créer des decks de flashcards organisés par thèmes, avec support multimédia (images, audio).
 
-There are several ways of editing your application.
+## Fonctionnalités principales
 
-**Use Lovable**
+- **Création de flashcards** : Créez des flashcards avec texte, images et audio
+- **Organisation par thèmes** : Organisez vos flashcards en thèmes au sein d'un deck
+- **Partage de decks** : Partagez vos decks avec d'autres utilisateurs
+- **Import/Export** : Sauvegardez et restaurez vos données
+- **Interface responsive** : Optimisée pour tous les appareils
+- **Base de données SQLite** : Stockage local sécurisé
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/32abf242-c4c3-4203-af67-138205467eab) and start prompting.
+## Technologies utilisées
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend** : React, TypeScript, Vite
+- **Interface** : Tailwind CSS, shadcn/ui
+- **Base de données** : SQLite (via sql.js)
+- **Routing** : React Router
+- **Icônes** : Lucide React
 
-**Use your preferred IDE**
+## Installation et démarrage
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prérequis
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js (version 16 ou supérieure)
+- npm ou yarn
 
-Follow these steps:
+### Étapes d'installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Clonez le repository :
+```bash
+git clone <URL_DU_REPOSITORY>
+cd cds-flashcard-base
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Installez les dépendances :
+```bash
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Démarrez le serveur de développement :
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Ouvrez votre navigateur et accédez à `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Scripts disponibles
 
-**Use GitHub Codespaces**
+- `npm run dev` : Démarre le serveur de développement
+- `npm run build` : Construit l'application pour la production
+- `npm run preview` : Prévisualise la version de production
+- `npm run lint` : Vérifie le code avec ESLint
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Structure du projet
 
-## What technologies are used for this project?
+```
+src/
+├── components/         # Composants réutilisables
+├── pages/             # Pages de l'application
+├── lib/               # Utilitaires et services
+├── hooks/             # Hooks React personnalisés
+├── styles/            # Fichiers de styles
+└── services/          # Services externes
+```
 
-This project is built with:
+## Fonctionnalités avancées
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Système de sessions
 
-## How can I deploy this project?
+L'application utilise un système de clés de session pour permettre aux utilisateurs de sauvegarder leurs données sans nécessiter de compte. Chaque utilisateur peut :
 
-Simply open [Lovable](https://lovable.dev/projects/32abf242-c4c3-4203-af67-138205467eab) and click on Share -> Publish.
+- Générer une clé de session unique
+- Exporter ses données pour sauvegarde
+- Importer des données depuis une sauvegarde
+- Partager des decks via des codes d'export
 
-## Can I connect a custom domain to my Lovable project?
+### Base de données SQLite
 
-Yes, you can!
+Toutes les données sont stockées localement dans une base SQLite qui gère :
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- Informations des utilisateurs
+- Decks de flashcards
+- Thèmes et organisation
+- Fichiers média (images, audio)
+- Statistiques d'apprentissage
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Import/Export de decks
+
+Les utilisateurs peuvent :
+
+- Exporter un deck individuel au format SQLite compressé
+- Importer des decks partagés par d'autres utilisateurs
+- Préserver toutes les données (cartes, thèmes, médias)
+
+## Contribution
+
+1. Forkez le projet
+2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/nouvelle-fonctionnalite`)
+3. Committez vos changements (`git commit -am 'Ajout d'une nouvelle fonctionnalité'`)
+4. Poussez vers la branche (`git push origin feature/nouvelle-fonctionnalite`)
+5. Ouvrez une Pull Request
+
+## Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+## Support
+
+Pour toute question ou problème, veuillez ouvrir une issue sur le repository GitHub.
+
+## Roadmap
+
+- [ ] Mode hors ligne complet
+- [ ] Synchronisation entre appareils
+- [ ] Statistiques d'apprentissage avancées
+- [ ] Support de nouvelles langues
+- [ ] Application mobile native
+
+---
+
+Créé avec passion en 2025 pour faciliter l'apprentissage par flashcards.
