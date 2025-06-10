@@ -1,4 +1,3 @@
-
 import NewSessionManager from './newSessionManager';
 
 const sessionManager = NewSessionManager.getInstance();
@@ -76,3 +75,7 @@ export const isValidSessionKey = (sessionKey: string) => sessionManager.isValidS
 
 export const importSessionFromFile = (file: File) => sessionManager.importSessionFromFile(file);
 export const exportSessionToFile = () => sessionManager.exportSessionToFile();
+
+// NEW: Logout and delete session functions
+export const logout = () => sessionManager.clearSession();
+export const deleteCurrentSession = () => sessionManager.deleteSession();

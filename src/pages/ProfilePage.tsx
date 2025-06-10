@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, FileDown, FileUp, Save, UserCog, Shield, Database, Clock, BarChart, Package } from "lucide-react";
+import { User, FileDown, FileUp, Save, UserCog, Shield, Database, Clock, BarChart, Package, LogOut, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,17 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   getUser, 
   updateUser, 
@@ -33,7 +44,9 @@ import {
   saveSessionKey,
   exportSessionToFile,
   importSessionFromFile,
-  createNewSession
+  createNewSession,
+  logout,
+  deleteCurrentSession
 } from "@/lib/sessionManager";
 import SQLiteManager from "@/lib/sqliteManager";
 
@@ -299,6 +312,50 @@ const ProfilePage = () => {
       toast({
         title: "Erreur",
         description: "Impossible d'importer le deck",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès",
+      });
+      navigate("/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de se déconnecter",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteSession = async () => {
+    try {
+      const success = await deleteCurrentSession();
+      if (success) {
+        toast({
+          title: "Session supprimée",
+          description: "Votre session et toutes vos données ont été supprimées définitivement",
+        });
+        navigate("/login");
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer la session",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting session:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la session",
         variant: "destructive",
       });
     }

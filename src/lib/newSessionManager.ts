@@ -1,4 +1,3 @@
-
 import SQLiteManager from './sqliteManager';
 
 interface SessionData {
@@ -154,6 +153,34 @@ class NewSessionManager {
     this.sqliteManager.clearLegacyStorage();
   }
 
+  // NEW: Delete session and all associated data
+  async deleteSession(): Promise<boolean> {
+    try {
+      const sessionKey = this.getSessionKey();
+      if (!sessionKey) return false;
+
+      const sessionData = await this.getSessionData(sessionKey);
+      if (!sessionData) return false;
+
+      // Delete user database
+      await this.sqliteManager.deleteUserDatabase(sessionData.userId);
+      
+      // Delete session data from IndexedDB
+      await this.deleteSessionData(sessionKey);
+      
+      // Clear session reference
+      localStorage.removeItem('currentSessionKey');
+      
+      // Clear any legacy data
+      this.sqliteManager.clearLegacyStorage();
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      return false;
+    }
+  }
+
   // NEW: Get all available sessions (for debugging/admin purposes)
   async getAllSessions(): Promise<SessionData[]> {
     const request = indexedDB.open('FlashcardApp', 1);
@@ -237,6 +264,34 @@ class NewSessionManager {
           resolve(result || null);
         };
         getRequest.onerror = () => reject(getRequest.error);
+      };
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('databases')) {
+          db.createObjectStore('databases', { keyPath: 'userId' });
+        }
+        if (!db.objectStoreNames.contains('sessions')) {
+          db.createObjectStore('sessions', { keyPath: 'sessionKey' });
+        }
+      };
+    });
+  }
+
+  private async deleteSessionData(sessionKey: string): Promise<void> {
+    const request = indexedDB.open('FlashcardApp', 1);
+
+    return new Promise((resolve, reject) => {
+      request.onerror = () => reject(request.error);
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction(['sessions'], 'readwrite');
+        const store = transaction.objectStore('sessions');
+        
+        store.delete(sessionKey);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
       };
 
       request.onupgradeneeded = () => {
