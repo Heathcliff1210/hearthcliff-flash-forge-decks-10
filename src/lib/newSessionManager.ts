@@ -1,3 +1,4 @@
+
 import SQLiteManager from './sqliteManager';
 
 interface SessionData {
@@ -94,6 +95,45 @@ class NewSessionManager {
     }
   }
 
+  // NEW: Load session by key only (for login page)
+  async loadSessionByKey(sessionKey: string): Promise<boolean> {
+    try {
+      console.log('Attempting to load session with key:', sessionKey);
+      
+      // Clear any legacy localStorage data first
+      this.sqliteManager.clearLegacyStorage();
+      
+      // Check if session exists
+      const sessionData = await this.getSessionData(sessionKey);
+      if (!sessionData) {
+        console.log('No session data found for key:', sessionKey);
+        return false;
+      }
+
+      console.log('Session data found, loading user database...');
+      
+      // Load the user's database
+      const success = await this.sqliteManager.loadUserDatabase(sessionData.userId);
+      if (success) {
+        // Set as current session
+        localStorage.setItem('currentSessionKey', sessionKey);
+        
+        // Update last activity
+        await this.updateLastActivity();
+        
+        console.log('Session loaded successfully');
+        return true;
+      } else {
+        console.log('Failed to load user database');
+        return false;
+      }
+      
+    } catch (error) {
+      console.error('Error loading session by key:', error);
+      return false;
+    }
+  }
+
   async hasSession(): Promise<boolean> {
     const sessionKey = localStorage.getItem('currentSessionKey');
     if (!sessionKey) return false;
@@ -112,6 +152,44 @@ class NewSessionManager {
     
     // Clear any legacy data
     this.sqliteManager.clearLegacyStorage();
+  }
+
+  // NEW: Get all available sessions (for debugging/admin purposes)
+  async getAllSessions(): Promise<SessionData[]> {
+    const request = indexedDB.open('FlashcardApp', 1);
+
+    return new Promise((resolve, reject) => {
+      request.onerror = () => reject(request.error);
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction(['sessions'], 'readonly');
+        const store = transaction.objectStore('sessions');
+        const getAllRequest = store.getAll();
+
+        getAllRequest.onsuccess = () => {
+          resolve(getAllRequest.result || []);
+        };
+        getAllRequest.onerror = () => reject(getAllRequest.error);
+      };
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('databases')) {
+          db.createObjectStore('databases', { keyPath: 'userId' });
+        }
+        if (!db.objectStoreNames.contains('sessions')) {
+          db.createObjectStore('sessions', { keyPath: 'sessionKey' });
+        }
+      };
+    });
+  }
+
+  // NEW: Validate session key format
+  isValidSessionKey(sessionKey: string): boolean {
+    // Session keys should be 10 characters, uppercase alphanumeric
+    const sessionKeyRegex = /^[A-Z0-9]{10}$/;
+    return sessionKeyRegex.test(sessionKey);
   }
 
   private async saveSessionData(sessionData: SessionData): Promise<void> {

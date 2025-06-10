@@ -67,5 +67,12 @@ export const importSessionData = async (data: string) => {
 // New functions for the SQLite system
 export const createNewSession = () => sessionManager.createSession();
 export const loadSession = (sessionKey: string) => sessionManager.loadSession(sessionKey);
+
+// NEW: Load session by key only
+export const loadSessionByKey = (sessionKey: string) => sessionManager.loadSessionByKey(sessionKey);
+
+// NEW: Validate session key format
+export const isValidSessionKey = (sessionKey: string) => sessionManager.isValidSessionKey(sessionKey);
+
 export const importSessionFromFile = (file: File) => sessionManager.importSessionFromFile(file);
 export const exportSessionToFile = () => sessionManager.exportSessionToFile();
