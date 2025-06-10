@@ -530,6 +530,52 @@ const ProfilePage = () => {
                     </Button>
                   </div>
                 </div>
+
+                <div className="w-full pt-2 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground mb-2 text-center">Gestion de session</p>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-sm mb-2"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Se déconnecter
+                  </Button>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        className="w-full justify-start text-sm"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Supprimer ma session
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          Supprimer définitivement la session
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible. Toutes vos données (decks, cartes, statistiques) 
+                          seront définitivement supprimées. Êtes-vous sûr de vouloir continuer ?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleDeleteSession}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                        >
+                          Supprimer définitivement
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </CardFooter>
             </Card>
           </div>
