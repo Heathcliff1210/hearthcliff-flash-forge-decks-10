@@ -218,6 +218,45 @@ class SQLiteManager {
     }
   }
 
+  async deleteUserDatabase(userId: string): Promise<boolean> {
+    try {
+      const request = indexedDB.open('FlashcardApp', 1);
+
+      return new Promise((resolve, reject) => {
+        request.onerror = () => reject(request.error);
+        
+        request.onsuccess = () => {
+          const db = request.result;
+          const transaction = db.transaction(['databases'], 'readwrite');
+          const store = transaction.objectStore('databases');
+          
+          store.delete(userId);
+          transaction.oncomplete = () => {
+            console.log(`Database for user ${userId} deleted successfully`);
+            resolve(true);
+          };
+          transaction.onerror = () => {
+            console.error('Error deleting user database:', transaction.error);
+            reject(transaction.error);
+          };
+        };
+
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('databases')) {
+            db.createObjectStore('databases', { keyPath: 'userId' });
+          }
+          if (!db.objectStoreNames.contains('sessions')) {
+            db.createObjectStore('sessions', { keyPath: 'sessionKey' });
+          }
+        };
+      });
+    } catch (error) {
+      console.error('Error deleting user database:', error);
+      return false;
+    }
+  }
+
   private async saveDatabaseToIndexedDB(userId: string): Promise<void> {
     if (!this.db) return;
 
@@ -880,9 +919,9 @@ class SQLiteManager {
                 newDeckId,
                 theme.title,
                 theme.description,
-                theme.cover_image,
-                now,
-                now
+                theme.coverImage || '',
+                theme.createdAt,
+                theme.updatedAt
               ]
             );
           }
