@@ -13,7 +13,8 @@ import {
   ArrowLeft,
   PlusIcon,
   Check,
-  Trash2
+  Trash2,
+  X
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -424,7 +425,7 @@ const DeckPage = () => {
   
   if (isLoading) {
     return (
-      <div className="container px-4 py-8 flex items-center justify-center h-64">
+      <div className="container px-3 sm:px-4 py-4 sm:py-8 flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Chargement...</p>
@@ -435,7 +436,7 @@ const DeckPage = () => {
   
   if (!deck) {
     return (
-      <div className="container px-4 py-8">
+      <div className="container px-3 sm:px-4 py-4 sm:py-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">Deck introuvable</h1>
           <p className="text-muted-foreground mb-6">
@@ -450,7 +451,7 @@ const DeckPage = () => {
   }
   
   return (
-    <div className="container px-4 py-8">
+    <div className="container px-3 sm:px-4 py-4 sm:py-8">
       <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="mr-1 h-4 w-4" />
         Retour
@@ -739,21 +740,21 @@ const DeckPage = () => {
       </Dialog>
       
       <Dialog open={showCardDialog} onOpenChange={setShowCardDialog}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Ajouter une flashcard</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-3 sm:p-6">
+          <DialogHeader className="pb-2 sm:pb-4">
+            <DialogTitle className="text-lg sm:text-xl">Ajouter une flashcard</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               Créez une nouvelle flashcard pour votre deck
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-2 sm:py-4">
             {themes.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="card-theme">Thème (optionnel)</Label>
+                <Label htmlFor="card-theme" className="text-sm font-medium">Thème (optionnel)</Label>
                 <select
                   id="card-theme"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={newCard.themeId}
                   onChange={(e) => setNewCard({ ...newCard, themeId: e.target.value || undefined })}
                 >
@@ -767,16 +768,17 @@ const DeckPage = () => {
               </div>
             )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4 border p-4 rounded-lg">
-                <h3 className="font-medium">Recto de la carte</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+              <div className="space-y-3 sm:space-y-4 border p-3 sm:p-4 rounded-lg">
+                <h3 className="font-medium text-sm sm:text-base">Recto de la carte</h3>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="front-text">Texte</Label>
+                  <Label htmlFor="front-text" className="text-sm">Texte</Label>
                   <Textarea
                     id="front-text"
                     placeholder="Ex: Définition, question, mot..."
                     rows={3}
+                    className="text-sm sm:text-base resize-none"
                     value={newCard.front.text}
                     onChange={(e) => setNewCard({
                       ...newCard,
@@ -786,50 +788,77 @@ const DeckPage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="front-image">Image (optionnelle)</Label>
+                  <Label htmlFor="front-image" className="text-sm">Image (optionnelle)</Label>
                   <Input
                     id="front-image"
                     type="file"
                     accept="image/*"
+                    className="text-sm"
                     onChange={(e) => handleImageUpload(e, 'front')}
                   />
                   {newCard.front.image && (
-                    <div className="mt-2 relative w-full h-32 rounded-md overflow-hidden border">
+                    <div className="mt-2 relative w-full h-24 sm:h-32 rounded-md overflow-hidden border">
                       <img
                         src={newCard.front.image}
                         alt="Front side"
                         className="w-full h-full object-cover"
                       />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full"
+                        onClick={() => setNewCard({
+                          ...newCard,
+                          front: { ...newCard.front, image: undefined },
+                        })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   )}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="front-audio">Audio (optionnel)</Label>
+                  <Label htmlFor="front-audio" className="text-sm">Audio (optionnel)</Label>
                   <Input
                     id="front-audio"
                     type="file"
                     accept="audio/*"
+                    className="text-sm"
                     onChange={(e) => handleAudioUpload(e, 'front')}
                   />
                   {newCard.front.audio && (
-                    <audio className="w-full mt-2" controls>
-                      <source src={newCard.front.audio} />
-                      Votre navigateur ne supporte pas l'élément audio.
-                    </audio>
+                    <div className="mt-2 relative">
+                      <audio className="w-full h-8" controls>
+                        <source src={newCard.front.audio} />
+                        Votre navigateur ne supporte pas l'élément audio.
+                      </audio>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full"
+                        onClick={() => setNewCard({
+                          ...newCard,
+                          front: { ...newCard.front, audio: undefined },
+                        })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
               
-              <div className="space-y-4 border p-4 rounded-lg">
-                <h3 className="font-medium">Verso de la carte</h3>
+              <div className="space-y-3 sm:space-y-4 border p-3 sm:p-4 rounded-lg">
+                <h3 className="font-medium text-sm sm:text-base">Verso de la carte</h3>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="back-text">Texte</Label>
+                  <Label htmlFor="back-text" className="text-sm">Texte</Label>
                   <Textarea
                     id="back-text"
                     placeholder="Ex: Réponse, traduction..."
                     rows={3}
+                    className="text-sm sm:text-base resize-none"
                     value={newCard.back.text}
                     onChange={(e) => setNewCard({
                       ...newCard,
@@ -839,48 +868,74 @@ const DeckPage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="back-image">Image (optionnelle)</Label>
+                  <Label htmlFor="back-image" className="text-sm">Image (optionnelle)</Label>
                   <Input
                     id="back-image"
                     type="file"
                     accept="image/*"
+                    className="text-sm"
                     onChange={(e) => handleImageUpload(e, 'back')}
                   />
                   {newCard.back.image && (
-                    <div className="mt-2 relative w-full h-32 rounded-md overflow-hidden border">
+                    <div className="mt-2 relative w-full h-24 sm:h-32 rounded-md overflow-hidden border">
                       <img
                         src={newCard.back.image}
                         alt="Back side"
                         className="w-full h-full object-cover"
                       />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full"
+                        onClick={() => setNewCard({
+                          ...newCard,
+                          back: { ...newCard.back, image: undefined },
+                        })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   )}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="back-audio">Audio (optionnel)</Label>
+                  <Label htmlFor="back-audio" className="text-sm">Audio (optionnel)</Label>
                   <Input
                     id="back-audio"
                     type="file"
                     accept="audio/*"
+                    className="text-sm"
                     onChange={(e) => handleAudioUpload(e, 'back')}
                   />
                   {newCard.back.audio && (
-                    <audio className="w-full mt-2" controls>
-                      <source src={newCard.back.audio} />
-                      Votre navigateur ne supporte pas l'élément audio.
-                    </audio>
+                    <div className="mt-2 relative">
+                      <audio className="w-full h-8" controls>
+                        <source src={newCard.back.audio} />
+                        Votre navigateur ne supporte pas l'élément audio.
+                      </audio>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-1 right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full"
+                        onClick={() => setNewCard({
+                          ...newCard,
+                          back: { ...newCard.back, audio: undefined },
+                        })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCardDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-2 sm:pt-4">
+            <Button variant="outline" onClick={() => setShowCardDialog(false)} className="w-full sm:w-auto order-2 sm:order-1">
               Annuler
             </Button>
-            <Button onClick={createNewCard}>
+            <Button onClick={createNewCard} className="w-full sm:w-auto order-1 sm:order-2">
               <Check className="mr-2 h-4 w-4" />
               Ajouter la carte
             </Button>
